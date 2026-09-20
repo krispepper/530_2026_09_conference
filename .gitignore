@@ -2,6 +2,7 @@
 *
 !/.gitignore
 !*.txt
-!/src/*.py
+!src/
+!src/*.py
 !*.sh
-!/src/templates/*.html
+!src/templates/*.html
