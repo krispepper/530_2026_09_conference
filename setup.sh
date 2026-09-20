@@ -1,12 +1,14 @@
 #!/bin/bash
 
-if [ ! -d "./src/venv" ] 
+if [ ! -d "./.venv" ] 
 then
-    python3 -m venv ./src/venv
+    python3 -m venv ./.venv
 fi
 
-source ./src/venv/bin/activate
+source ./.venv/bin/activate
 
-pip install flask
+# pip install flask
 
-pip install mysql-connector-python
+# pip install mysql-connector-python
+
+pip install -r requirements.txt

@@ -1,4 +1,4 @@
-#!./venv/bin/python3
+#!./.venv/bin/python3
 
 from flask import Flask, render_template, request
 from queries import *
