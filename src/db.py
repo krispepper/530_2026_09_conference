@@ -1,14 +1,14 @@
 
-# import mysql.connector
+import mysql.connector
 
 def get_connection():
-    """connection = mysql.connector.connect(
-        user='todo', 
-        password='todo', 
-        host='todo',
-        database='todo'
-    )"""
+    connection = mysql.connector.connect(
+        user='edwardhunter', 
+        password='', 
+        host='localhost',
+        database='edwardhunter'
+    )
     
-    # return connection
-    raise NotImplementedError("Pending group decision on database connection library.")
+    return connection
+    # raise NotImplementedError("Pending group decision on database connection library.")
 

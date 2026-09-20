@@ -8,6 +8,8 @@
     <title>Website Directory</title>
 </head>
 <body>
-    {{ test_data }}
+    {% for dat in test_data %}
+        <h1>{{ dat.message }}</h1>
+    {% endfor %}
 </body>
 </html>
