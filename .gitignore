@@ -5,4 +5,5 @@
 !src/
 !src/*.py
 !*.sh
+!src/templates
 !src/templates/*.html
