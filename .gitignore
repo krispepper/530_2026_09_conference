@@ -4,4 +4,4 @@
 !*.txt
 !/src/*.py
 !*.sh
-!/src/templats/*.html
+!/src/templates/*.html
