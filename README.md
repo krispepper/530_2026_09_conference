@@ -6,7 +6,10 @@ A web application for managing conferences, built for CSC 530 Software Engineeri
 - Frontend: HTML / CSS / JavaScript
 - Backend: Python / Flask / Blueprint
 - Database: MySQL
-
+- Dev DB: edwardhunter
+- UAT DB: fall2026_530_conf
+- Connector: mysql-connector-python
+- Project Folder: fall2026_530_conf
 ## Prerequisites
 - Python 3.x
 - MySQL
