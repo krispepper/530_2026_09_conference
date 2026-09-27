@@ -70,18 +70,6 @@ pip install -r requirements.txt
 
 ### 6. Run the Application
 
-Make sure the virtual environment is activated:
-
-```bash
-source .venv/bin/activate
-```
-
-If the dependencies have not already been installed:
-
-```bash
-pip install -r requirements.txt
-```
-
 Run the application using the project's run script:
 
 ```bash
@@ -96,5 +84,15 @@ chmod +x run.sh
 ```
 
 The terminal should display the host and port where the Flask application is running.
+
+Before the first run, create the user and conference tables with:
+
+```bash
+PYTHONPATH=src python3 -c "from db import create_tables; create_tables()"
+```
+
+Database selection is controlled through `.env`. UAT/development is used by
+default; set `IS_PROD=true` only when running against the production database:
+
 
 > **Note:** The Flask application is currently under development. These instructions describe how the application will be launched once the Flask setup is complete.
