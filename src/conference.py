@@ -67,7 +67,9 @@ def get_conference_by_id(conference_id):
         event_datetime, location, registration_type, is_published,
         created_at, published_at
         FROM `{CONFERENCE_TABLE}`
-        WHERE conference_id = %s AND is_published = TRUE"""
+        WHERE conference_id = %s
+        AND is_published = TRUE
+        AND registration_type = 'open'"""
     try:
         cursor.execute(sql, (conference_id,))
         conference_data = cursor.fetchone()
@@ -120,7 +122,7 @@ def get_published_conferences():
         event_datetime, location, registration_type, is_published,
         created_at, published_at
         FROM `{CONFERENCE_TABLE}`
-        WHERE is_published = TRUE
+        WHERE is_published = TRUE AND registration_type = 'open'
         ORDER BY event_datetime"""
     try:
         cursor.execute(sql)

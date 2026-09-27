@@ -5,6 +5,7 @@
     <title>Create Conference</title>
 </head>
 <body>
+    {% include '_navigation.html' %}
     <h1>Create Conference Draft</h1>
     {% if errors.form %}<p role="alert">{{ errors.form }}</p>{% endif %}
     <form action="{{ url_for('create_conference_route') }}" method="post">

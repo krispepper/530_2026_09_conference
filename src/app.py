@@ -36,8 +36,21 @@ app.config["SECRET_KEY"] = SECRET_KEY
 
 @app.route('/', methods=['GET'])
 def get_index():
-    test_data = get_test()
-    return render_template('index.html', test_data=test_data)
+    return render_template('index.html')
+
+
+@app.context_processor
+def navigation_context():
+    user_id = session.get('user_id')
+    current_user = get_user_by_id(user_id) if user_id else None
+    return {
+        'current_user': current_user,
+        'can_manage_conferences': bool(
+            current_user and (
+                current_user.is_organizer or current_user.is_admin
+            )
+        ),
+    }
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -111,7 +124,10 @@ def conferences_page():
 
 @app.route('/conferences/new', methods=['GET'])
 def create_conference_page():
-    if not session.get('user_id') or not is_user_organizer(session['user_id']):
+    if not session.get('user_id') or not (
+        is_user_organizer(session['user_id'])
+        or is_user_admin(session['user_id'])
+    ):
         return 'Organizer privileges required.', 403
     return render_template('create_conference.html', values={}, errors={})
 
@@ -119,7 +135,9 @@ def create_conference_page():
 @app.route('/conferences', methods=['POST'])
 def create_conference_route():
     organizer_id = session.get('user_id')
-    if not organizer_id or not is_user_organizer(organizer_id):
+    if not organizer_id or not (
+        is_user_organizer(organizer_id) or is_user_admin(organizer_id)
+    ):
         return 'Organizer privileges required.', 403
 
     values, errors = validate_conference_form(request.form)
@@ -144,7 +162,9 @@ def create_conference_route():
 @app.route('/conferences/<int:conference_id>/publish', methods=['POST'])
 def publish_conference_route(conference_id):
     organizer_id = session.get('user_id')
-    if not organizer_id or not is_user_organizer(organizer_id):
+    if not organizer_id or not (
+        is_user_organizer(organizer_id) or is_user_admin(organizer_id)
+    ):
         return 'Organizer privileges required.', 403
 
     try:

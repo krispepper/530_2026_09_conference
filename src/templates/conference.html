@@ -5,6 +5,7 @@
     <title>{{ conference.name }}</title>
 </head>
 <body>
+    {% include '_navigation.html' %}
     <h1>{{ conference.name }}</h1>
     <p>{{ conference.description }}</p>
     <p><strong>Date and time:</strong> {{ conference.event_datetime }}</p>

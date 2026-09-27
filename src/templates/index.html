@@ -5,11 +5,12 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Website Directory</title>
+    <title>Conference Registration System</title>
 </head>
 <body>
-    {% for dat in test_data %}
-        <h1>{{ dat.message }}</h1>
-    {% endfor %}
+    <h1>Conference Registration System</h1>
+    <p>Browse conferences and manage conference registration.</p>
+    <a href="{{ url_for('login') }}">Log in</a>
+    <a href="{{ url_for('add_user_page') }}">Create new user</a>
 </body>
 </html>

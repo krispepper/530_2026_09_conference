@@ -1,0 +1,14 @@
+<nav>
+    <a href="{{ url_for('get_index') }}">Home</a>
+    <a href="{{ url_for('conferences_page') }}">View conferences</a>
+    {% if can_manage_conferences %}
+        <a href="{{ url_for('create_conference_page') }}">Create conference</a>
+    {% endif %}
+    {% if current_user %}
+        <span>Signed in as {{ current_user.user_id }}</span>
+        <a href="{{ url_for('logout') }}">Log out</a>
+    {% else %}
+        <a href="{{ url_for('login') }}">Log in</a>
+    {% endif %}
+</nav>
+<hr>
