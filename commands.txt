@@ -33,4 +33,8 @@ List endpoints -> flask routes
 - http://localhost:5001
 - http://127.0.0.1:5001/view_user/u777
 - http://127.0.0.1:5001/add_user
+- http://127.0.0.1:5001/conferences
+- http://127.0.0.1:5001/login
+- http://127.0.0.1:5001/logout
+- http://127.0.0.1:5001/conferences/new
 
