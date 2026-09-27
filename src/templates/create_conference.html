@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Create Conference</title>
+</head>
+<body>
+    <h1>Create Conference Draft</h1>
+    {% if errors.form %}<p role="alert">{{ errors.form }}</p>{% endif %}
+    <form action="{{ url_for('create_conference_route') }}" method="post">
+        <div>
+            <label for="name">Conference name</label>
+            <input type="text" name="name" id="name" value="{{ values.get('name', '') }}" required>
+            {% if errors.name %}<p role="alert">{{ errors.name }}</p>{% endif %}
+        </div>
+        <div>
+            <label for="description">Description</label>
+            <textarea name="description" id="description" required>{{ values.get('description', '') }}</textarea>
+            {% if errors.description %}<p role="alert">{{ errors.description }}</p>{% endif %}
+        </div>
+        <div>
+            <label for="event_datetime">Date and time</label>
+            <input type="datetime-local" name="event_datetime" id="event_datetime" value="{{ values.get('event_datetime', '') }}" required>
+            {% if errors.event_datetime %}<p role="alert">{{ errors.event_datetime }}</p>{% endif %}
+        </div>
+        <div>
+            <label for="location">Location</label>
+            <input type="text" name="location" id="location" value="{{ values.get('location', '') }}" required>
+            {% if errors.location %}<p role="alert">{{ errors.location }}</p>{% endif %}
+        </div>
+        <fieldset>
+            <legend>Registration type</legend>
+            <label>
+                <input type="radio" name="registration_type" value="open"
+                    {% if values.get('registration_type') == 'open' %}checked{% endif %} required>
+                Open
+            </label>
+            <label>
+                <input type="radio" name="registration_type" value="restricted"
+                    {% if values.get('registration_type') == 'restricted' %}checked{% endif %}>
+                Restricted
+            </label>
+            {% if errors.registration_type %}<p role="alert">{{ errors.registration_type }}</p>{% endif %}
+        </fieldset>
+        <button type="submit">Save conference draft</button>
+    </form>
+</body>
+</html>

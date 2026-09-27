@@ -59,8 +59,16 @@ def get_user_by_id(user_id):
         return user_data
     
     return UserModel(*user_data)
-    
-
-    
 
 
+def is_user_organizer(user_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    sql = f"SELECT is_organizer FROM `{USER_TABLE}` WHERE user_id = %s"
+    try:
+        cursor.execute(sql, (user_id,))
+        user_data = cursor.fetchone()
+    finally:
+        cursor.close()
+        connection.close()
+    return bool(user_data and user_data[0])

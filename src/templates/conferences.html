@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Conferences</title>
+</head>
+<body>
+    <h1>Published Conferences</h1>
+    {% for conference in conferences %}
+        <article>
+            <h2>
+                <a href="{{ url_for('conference_page', conference_id=conference.conference_id) }}">
+                    {{ conference.name }}
+                </a>
+            </h2>
+            <p>{{ conference.event_datetime }} &mdash; {{ conference.location }}</p>
+            <p>{{ conference.registration_type|capitalize }} registration</p>
+        </article>
+    {% else %}
+        <p>No conferences have been published.</p>
+    {% endfor %}
+</body>
+</html>

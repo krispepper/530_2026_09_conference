@@ -1,0 +1,36 @@
+-----------------------------------Project setup-----------------------------------
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+-----------------------------------Run project-----------------------------------
+Run app -> ./run.sh
+Run app -> flask run —port=5003
+-----------------------------------SSH tunnel-----------------------------------
+Open SSH tunnel (to test compsci server on my PC) -> ssh -L 5001:localhost:5001 youremail@compsci.adelphi.edu
+Close SSH tunnel -> exit
+-----------------------------------Files-----------------------------------
+Check which dir you are in -> ls
+Go back a dir -> cd ..
+List current dir -> pwd
+See user permission -> ls -la
+Go in project folder ->  cd /home/groupprojects/fall2026_530_conf/530_2026_09_conference
+Read a file /print in terminal -> cat README.md
+Delete file -> rm fileName
+Edit file -> nano fileName
+- Control O + Enter -> save
+- Control X -> exit
+KILL PID running on port 5001 -> kill 47715 47716; sleep 1; lsof -nP -iTCP:5001 -sTCP:LISTEN || true
+Which service is working on port 5001 -> lsof -nP -iTCP:5001 -sTCP:LISTEN
+Generate secret key flask -> python3 -c "import secrets; print(secrets.token_hex(32))"
+
+-----------------------------------Git-----------------------------------
+Clone repo -> git clone git@github.com:krispepper/530_2026_09_conference.git
+Fetch latest changes -> git fetch
+Reset changes -> git reset --hard HEAD
+Apply latest changes -> git pull
+-----------------------------------Endpoints-----------------------------------
+List endpoints -> flask routes
+- http://localhost:5001
+- http://127.0.0.1:5001/view_user/u777
+- http://127.0.0.1:5001/add_user
+
