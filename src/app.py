@@ -1,19 +1,14 @@
-#!./.venv/bin/python3
-
 from flask import Flask, render_template, request
+from mysql.connector import IntegrityError
+
 from queries import *
 from user import *
-# importing os module for environment variables
 import os
-# importing necessary functions from dotenv library
-from dotenv import load_dotenv, dotenv_values 
-# loading variables from .env file
-load_dotenv() 
+from dotenv import load_dotenv, dotenv_values
+load_dotenv()
+
 # export PORT="[server port]"
 PORT = os.getenv("PORT")
-
-
-#print("Hello world!")
 
 
 app = Flask(__name__)
