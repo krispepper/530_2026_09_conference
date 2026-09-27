@@ -16,16 +16,8 @@ class UserModel:
         self.is_admin = is_admin
         self.is_organizer = is_organizer
 
-def create_user_table_sql():
-    return """CREATE TABLE `user` ( 
-    `user_id` varchar(10) NOT NULL, 
-    `f_name` varchar(30) NOT NULL, 
-    `l_name` varchar(30) NOT NULL, 
-    `email` varchar(40) NOT NULL, 
-    `is_admin` BOOL NOT NULL, 
-    `is_participant` BOOL NOT NULL, 
-    `is_organizer` BOOL NOT NULL, 
-    PRIMARY KEY (`user_id`) );"""
+
+
 
 def create_user(user_id, f_name, l_name, email, is_participant, is_admin, is_organizer):
 
