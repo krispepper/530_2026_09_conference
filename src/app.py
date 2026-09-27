@@ -1,6 +1,7 @@
 
 from flask import Flask, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
+from werkzeug.routing import BuildError
 
 from conference import (
     create_conference,
@@ -21,6 +22,7 @@ load_dotenv()
 PORT = os.getenv("PORT")
 
 app = Flask(__name__)
+
 IS_PROD = os.getenv("IS_PROD", "false").strip().lower() in {
     "1",
     "true",
@@ -28,12 +30,47 @@ IS_PROD = os.getenv("IS_PROD", "false").strip().lower() in {
     "on",
 }
 SECRET_KEY = os.getenv("FLASK_SECRET_KEY_PROD") if IS_PROD else os.getenv("FLASK_SECRET_KEY_DEV")
-app.config["SECRET_KEY"] = os.getenv(SECRET_KEY, "null")
+app.config["SECRET_KEY"] = SECRET_KEY
 
 @app.route('/', methods=['GET'])
 def get_index():
    test_data = get_test()
    return render_template('index.html', test_data = test_data)
+
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+   if request.method == 'GET':
+      return render_template('login.html', error=None)
+
+   user_id = request.form.get('user_id', '').strip()
+   if not user_id:
+      return render_template(
+          'login.html', error='Enter a user ID.'
+      ), 400
+
+   user = get_user_by_id(user_id)
+   if user is None:
+      return render_template(
+          'login.html', error='User ID was not found.'
+      ), 401
+
+   session.clear()
+   session['user_id'] = user.user_id
+   try:
+      return redirect(url_for('create_conference_page') if user.is_organizer
+                      else url_for('conferences_page'))
+   except BuildError:
+      return render_template(
+          'login.html', error='Unable to complete login right now.'
+      ), 500
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+   session.clear()
+   return redirect(url_for('login'))
+
 
 @app.route('/add_user', methods=['POST'])
 def add_user():
