@@ -1,4 +1,3 @@
-#!./.venv/bin/python3
 
 from flask import Flask, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
@@ -11,19 +10,15 @@ from conference import (
     publish_conference,
     validate_conference_form,
 )
+
 from queries import *
 from user import *
-# importing os module for environment variables
 import os
-# importing necessary functions from dotenv library
-from dotenv import load_dotenv, dotenv_values 
-# loading variables from .env file
-load_dotenv() 
+from dotenv import load_dotenv, dotenv_values
+load_dotenv()
+
 # export PORT="[server port]"
 PORT = os.getenv("PORT")
-
-#print("Hello world!")
-
 
 app = Flask(__name__)
 IS_PROD = os.getenv("IS_PROD", "false").strip().lower() in {
