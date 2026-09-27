@@ -165,8 +165,7 @@ def conference_page(conference_id):
        is_owner=conference.organizer_id == session.get('user_id'),
    )
 
-#TODO: view conferences list view...
-
 
 if __name__ == '__main__':
+    create_tables()
     app.run(debug=True, port=int(PORT) if PORT else 5000)

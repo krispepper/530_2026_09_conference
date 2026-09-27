@@ -7,8 +7,8 @@ load_dotenv()
 print("Loading environment variables...")
 
 USER = os.getenv("DB_USER")
-PASSWORD = os.getenv("DB_PASSWORD")
-HOST = os.getenv("DB_HOST")
+PASSWORD = os.getenv("DB_PASSWORD", "")
+HOST = os.getenv("DB_HOST", "localhost")
 PORT = os.getenv("DB_PORT")
 DB_DEV = os.getenv("DB_NAME_DEV", os.getenv("DB_NAME", "fall2026_530_conf"))
 DB_PROD = os.getenv("DB_NAME_PROD", DB_DEV)
@@ -25,14 +25,19 @@ CONFERENCE_TABLE = "conference"
 
 
 def get_connection():
-    return mysql.connector.connect(
-        user=USER,
-        password=PASSWORD,
-        host=HOST,
-        port=PORT,
-        database=DATABASE,
-    )
+    connection_args = {
+        "user": USER,
+        "password": PASSWORD,
+        "host": HOST,
+        "database": DATABASE,
+    }
+    if PORT:
+        connection_args["port"] = int(PORT)
+    return mysql.connector.connect(**connection_args)
+
+
 print("Using DB:", DATABASE)
+
 
 def create_user_table_sql():
     return f"""CREATE TABLE IF NOT EXISTS `{USER_TABLE}` (
@@ -56,9 +61,9 @@ def create_conference_table_sql():
     `event_datetime` DATETIME NOT NULL,
     `location` VARCHAR(200) NOT NULL,
     `registration_type` ENUM('open', 'restricted') NOT NULL,
-    `is_published` BOOL NOT NULL DEFAULT TRUE,
+    `is_published` BOOL NOT NULL DEFAULT FALSE,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-    `published_at` TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP,
+    `published_at` TIMESTAMP NULL DEFAULT NULL,
     PRIMARY KEY (`conference_id`),
     CONSTRAINT `fk_conference_organizer`
         FOREIGN KEY (`organizer_id`) REFERENCES `{USER_TABLE}` (`user_id`),
@@ -71,8 +76,8 @@ def create_tables():
     connection = get_connection()
     cursor = connection.cursor()
     try:
-        for sql in (create_user_table_sql(), create_conference_table_sql()):
-            cursor.execute(sql)
+        cursor.execute(create_user_table_sql())
+        cursor.execute(create_conference_table_sql())
         connection.commit()
     except Exception:
         connection.rollback()
