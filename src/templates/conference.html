@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ conference.name }}</title>
+</head>
+<body>
+    <h1>{{ conference.name }}</h1>
+    <p>{{ conference.description }}</p>
+    <p><strong>Date and time:</strong> {{ conference.event_datetime }}</p>
+    <p><strong>Location:</strong> {{ conference.location }}</p>
+    <p><strong>Registration:</strong> {{ conference.registration_type|capitalize }}</p>
+    {% if conference.is_published %}
+        <p>Registration is available through the participant registration flow.</p>
+    {% elif is_owner %}
+        <p>This conference is a draft and is not visible to participants.</p>
+        <form method="post" action="{{ url_for('publish_conference_route', conference_id=conference.conference_id) }}">
+            <button type="submit">Publish conference</button>
+        </form>
+    {% endif %}
+</body>
+</html>
