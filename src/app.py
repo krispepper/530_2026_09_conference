@@ -1,6 +1,7 @@
 #!./.venv/bin/python3
 
 from flask import Flask, render_template, request, session, redirect, url_for
+from werkzeug.routing import BuildError
 from queries import *
 from user import *
 # importing os module for environment variables
@@ -44,8 +45,13 @@ def login():
 
    session.clear()
    session['user_id'] = user.user_id
-   return redirect(url_for('create_conference_page') if user.is_organizer
-                   else url_for('conferences_page'))
+   try:
+      return redirect(url_for('create_conference_page') if user.is_organizer
+                      else url_for('conferences_page'))
+   except BuildError:
+      return render_template(
+          'login.html', error='Unable to complete login right now.'
+      ), 500
 
 
 @app.route('/logout', methods=['POST'])
