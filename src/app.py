@@ -23,6 +23,36 @@ def get_index():
    test_data = get_test()
    return render_template('index.html', test_data = test_data)
 
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+   if request.method == 'GET':
+      return render_template('login.html', error=None)
+
+   user_id = request.form.get('user_id', '').strip()
+   if not user_id:
+      return render_template(
+          'login.html', error='Enter a user ID.'
+      ), 400
+
+   user = get_user_by_id(user_id)
+   if user is None:
+      return render_template(
+          'login.html', error='User ID was not found.'
+      ), 401
+
+   session.clear()
+   session['user_id'] = user.user_id
+   return redirect(url_for('create_conference_page') if user.is_organizer
+                   else url_for('conferences_page'))
+
+
+@app.route('/logout', methods=['POST'])
+def logout():
+   session.clear()
+   return redirect(url_for('login'))
+
+
 @app.route('/add_user', methods=['POST'])
 def add_user():
    fields = ['user_id', 'f_name', 'l_name', 'email', 'is_participant', 'is_admin', 'is_organizer']
