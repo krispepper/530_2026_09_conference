@@ -16,7 +16,7 @@ class UserModel:
         self.is_admin = is_admin
         self.is_organizer = is_organizer
 
-def create_user_table():
+def create_user_table_sql():
     return """CREATE TABLE `user` ( 
     `user_id` varchar(10) NOT NULL, 
     `f_name` varchar(30) NOT NULL, 
@@ -32,13 +32,14 @@ def create_user(user_id, f_name, l_name, email, is_participant, is_admin, is_org
     connection = get_connection()
     cursor = connection.cursor()
 
-    sql = f"""INSERT INTO {USER_TABLE} (user_id, f_name, l_name, email, is_participant, is_admin, is_organizer)"""
+    sql = f"""INSERT INTO {USER_TABLE} (user_id, f_name, l_name, email, is_participant, is_admin, is_organizer)
+    VALUES (%s, %s, %s, %s, %s, %s, %s)"""
 
     cursor.execute(sql, (user_id, f_name, l_name, email, is_participant, is_admin, is_organizer))
     print(f"Added user with id {cursor.lastrowid}")
 
     connection.commit()
-    
+
     cursor.close()
     connection.close()
 
@@ -47,18 +48,17 @@ def create_user(user_id, f_name, l_name, email, is_participant, is_admin, is_org
 
 
 def get_user_by_id(user_id):
-    """user_id must be sanitized to prevent SQL injection"""
 
     connection = get_connection()
-    cursor = connection.cursor(dictionary = True)
+    cursor = connection.cursor()
     sql = f"""SELECT u.user_id, 
     u.f_name, u.l_name, u.email,
     u.is_participant, u.is_admin, u.is_organizer 
     FROM {USER_TABLE} u 
-    WHERE u.user_id = '{user_id}';"""
+    WHERE u.user_id = %s;"""
 
 
-    cursor.execute(sql)
+    cursor.execute(sql, [user_id])
     user_data = cursor.fetchone()
     cursor.close()
     connection.close()

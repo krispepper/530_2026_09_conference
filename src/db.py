@@ -19,7 +19,7 @@ def get_connection():
         user=USER, 
         password='', 
         host='localhost',
-        database='edwardhunter'
+        database='fall2026_530_conf'
     )
     
     return connection
