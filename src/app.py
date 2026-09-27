@@ -3,6 +3,7 @@ from mysql.connector import Error, IntegrityError
 from werkzeug.routing import BuildError
 
 from db import create_tables
+from db_seeder import DefaultConferenceSeeder
 from conference import (
     create_conference,
     get_conference_by_id,
@@ -196,4 +197,5 @@ def conference_page(conference_id):
 
 if __name__ == '__main__':
     create_tables()
+    DefaultConferenceSeeder.seed_if_empty()
     app.run(debug=True, port=int(PORT) if PORT else 5000)
