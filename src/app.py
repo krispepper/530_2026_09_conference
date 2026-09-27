@@ -17,6 +17,7 @@ PORT = os.getenv("PORT")
 
 
 app = Flask(__name__)
+app.config['SECRET_KEY'] = os.getenv('SECRET_KEY')
 
 @app.route('/', methods=['GET'])
 def get_index():
