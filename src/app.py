@@ -8,6 +8,7 @@ from conference import (
     create_conference,
     get_conference_by_id,
     get_conference_for_organizer,
+    get_conferences_for_organizer,
     get_published_conferences,
     publish_conference,
     validate_conference_form,
@@ -121,6 +122,19 @@ def conferences_page():
     return render_template(
         'conferences.html',
         conferences=get_published_conferences(),
+    )
+
+
+@app.route('/my-conferences', methods=['GET'])
+def my_conferences_page():
+    organizer_id = session.get('user_id')
+    if not organizer_id or not is_user_organizer(organizer_id):
+        return 'Organizer privileges required.', 403
+    return render_template(
+        'conferences.html',
+        title='My Conferences',
+        conferences=get_conferences_for_organizer(organizer_id),
+        show_status=True,
     )
 
 

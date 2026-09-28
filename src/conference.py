@@ -139,6 +139,24 @@ def get_published_conferences():
     return [ConferenceModel(*data) for data in conference_data]
 
 
+def get_conferences_for_organizer(organizer_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    sql = f"""SELECT conference_id, organizer_id, name, description,
+        event_datetime, location, registration_type, is_published,
+        created_at, published_at
+        FROM `{CONFERENCE_TABLE}`
+        WHERE organizer_id = %s
+        ORDER BY event_datetime"""
+    try:
+        cursor.execute(sql, (organizer_id,))
+        conference_data = cursor.fetchall()
+    finally:
+        cursor.close()
+        connection.close()
+    return [ConferenceModel(*data) for data in conference_data]
+
+
 def validate_conference_form(form):
     values = {
         "name": form.get("name", "").strip(),
