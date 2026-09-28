@@ -43,6 +43,13 @@ def add_user_page():
 @app.route('/view_user/<user_id>', methods=['GET'])
 def view_user_page(**kwargs):
    return render_template('view_user.html', dat = get_user_by_id(request.view_args['user_id']).__dict__)
+@app.route('/delete_user/<user_id>', methods=['POST'])
+def delete_user(user_id):
+    try:
+        delete_user_by_id(user_id)
+        return "User deleted successfully"
+    except Exception as e:
+        return f"Error deleting user: {e}"
 
 if __name__ == '__main__':
     app.run(debug=True, port = PORT)
