@@ -204,4 +204,4 @@ def delete_user(user_id):
 if __name__ == '__main__':
     create_tables()
     DefaultConferenceSeeder.seed_if_empty()
-    app.run(debug=True, port=int(PORT) if PORT else 5000
+    app.run(debug=True, port=int(PORT) if PORT else 5000)
