@@ -2,20 +2,22 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Conferences</title>
+    <title>{{ title|default('Published Conferences') }}</title>
 </head>
 <body>
     {% include '_navigation.html' %}
-    <h1>Published Conferences</h1>
+    <h1>{{ title|default('Published Conferences') }}</h1>
     {% for conference in conferences %}
         <article>
-            <h2>
-                <a href="{{ url_for('conference_page', conference_id=conference.conference_id) }}">
-                    {{ conference.name }}
-                </a>
-            </h2>
+            <h2>{{ conference.name }}</h2>
             <p>{{ conference.event_datetime }} &mdash; {{ conference.location }}</p>
             <p>{{ conference.registration_type|capitalize }} registration</p>
+            {% if show_status|default(false) %}
+                <p>{{ 'Published' if conference.is_published else 'Draft' }}</p>
+            {% endif %}
+            <a class="button" href="{{ url_for('conference_page', conference_id=conference.conference_id) }}">
+                View conference
+            </a>
         </article>
     {% else %}
         <p>No conferences have been published.</p>
