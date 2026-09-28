@@ -8,12 +8,17 @@ from conference import (
     create_conference,
     get_conference_by_id,
     get_conference_for_organizer,
-    get_conferences_for_organizer,
+    get_my_conferences,
     get_published_conferences,
     publish_conference,
     validate_conference_form,
 )
-from participant_conf import invite_participant, register_participant
+from participant_conf import (
+    get_participant_conference_status,
+    invite_participant,
+    register_participant,
+    unregister_participant,
+)
 
 from queries import *
 from user import *
@@ -127,13 +132,17 @@ def conferences_page():
 
 @app.route('/my-conferences', methods=['GET'])
 def my_conferences_page():
-    organizer_id = session.get('user_id')
-    if not organizer_id or not is_user_organizer(organizer_id):
-        return 'Organizer privileges required.', 403
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+    user = get_user_by_id(user_id)
+    if not user or not (user.is_organizer or user.is_admin or user.is_participant):
+        return 'Organizer or participant privileges required.', 403
+    is_conference_owner = user.is_organizer or user.is_admin
     return render_template(
         'conferences.html',
         title='My Conferences',
-        conferences=get_conferences_for_organizer(organizer_id),
+        conferences=get_my_conferences(user_id, is_conference_owner),
         show_status=True,
     )
 
@@ -205,6 +214,10 @@ def conference_page(conference_id):
         )
     if conference is None:
         return 'Conference not found.', 404
+    if session.get('user_id'):
+        conference.membership_status = get_participant_conference_status(
+            session['user_id'], conference_id
+        )
     return render_template(
         'conference.html',
         conference=conference,
