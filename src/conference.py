@@ -167,6 +167,43 @@ def get_conferences_for_organizer(organizer_id):
     return [ConferenceModel(*data) for data in conference_data]
 
 
+def get_my_conferences(user_id, is_organizer=False):
+    connection = get_connection()
+    cursor = connection.cursor()
+    if is_organizer:
+        sql = f"""SELECT conference_id, organizer_id, name, description,
+            event_datetime, location, registration_type, is_published,
+            created_at, published_at
+            FROM `{CONFERENCE_TABLE}`
+            WHERE organizer_id = %s
+            ORDER BY event_datetime"""
+        parameters = (user_id,)
+    else:
+        sql = f"""SELECT c.conference_id, c.organizer_id, c.name,
+            c.description, c.event_datetime, c.location,
+            c.registration_type, c.is_published, c.created_at,
+            c.published_at, pc.status
+            FROM `{CONFERENCE_TABLE}` c
+            JOIN `{PARTICIPANT_CONFERENCE_TABLE}` pc
+                ON pc.conference_id = c.conference_id
+            WHERE pc.participant_id = %s
+            ORDER BY c.event_datetime"""
+        parameters = (user_id,)
+    try:
+        cursor.execute(sql, parameters)
+        conference_data = cursor.fetchall()
+    finally:
+        cursor.close()
+        connection.close()
+
+    conferences = []
+    for data in conference_data:
+        conference = ConferenceModel(*data[:10])
+        conference.membership_status = "Organizer" if is_organizer else data[10].capitalize()
+        conferences.append(conference)
+    return conferences
+
+
 def validate_conference_form(form):
     values = {
         "name": form.get("name", "").strip(),
