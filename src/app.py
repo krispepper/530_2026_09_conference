@@ -254,5 +254,5 @@ def register_participant_route(conference_id):
 
 if __name__ == '__main__':
     create_tables()
-    DefaultConferenceSeeder.seed_if_empty()
+    DefaultConferenceSeeder.initialize_db()
     app.run(debug=True, port=int(PORT) if PORT else 5000)

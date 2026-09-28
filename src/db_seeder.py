@@ -8,6 +8,7 @@ class DefaultConferenceSeeder:
 
     ORGANIZER_ID = "u1"
     ADMIN_ID = "u2"
+    PARTICIPANT_ID = "u3"
 
     @classmethod
     def default_users(cls):
@@ -28,6 +29,15 @@ class DefaultConferenceSeeder:
                 "email": "dev@example.edu",
                 "is_admin": True,
                 "is_participant": False,
+                "is_organizer": False,
+            },
+            {
+                "user_id": cls.PARTICIPANT_ID,
+                "f_name": "Conference",
+                "l_name": "Participant",
+                "email": "participant@example.edu",
+                "is_admin": False,
+                "is_participant": True,
                 "is_organizer": False,
             },
         ]
@@ -62,50 +72,53 @@ class DefaultConferenceSeeder:
         ]
 
     @classmethod
-    def seed_if_empty(cls):
+    def seed_users(cls, cursor):
+        user_sql = f"""INSERT IGNORE INTO `{USER_TABLE}`
+            (user_id, f_name, l_name, email, is_admin,
+             is_participant, is_organizer)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)"""
+        for user in cls.default_users():
+            cursor.execute(
+                user_sql,
+                (
+                    user["user_id"],
+                    user["f_name"],
+                    user["l_name"],
+                    user["email"],
+                    user["is_admin"],
+                    user["is_participant"],
+                    user["is_organizer"],
+                ),
+            )
+
+    @classmethod
+    def seed_conferences(cls, cursor):
+        conference_sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
+            (organizer_id, name, description, event_datetime, location,
+             registration_type, is_published, published_at)
+            VALUES (%s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP)"""
+        for conference in cls.default_conferences():
+            cursor.execute(
+                conference_sql,
+                (
+                    conference["organizer_id"],
+                    conference["name"],
+                    conference["description"],
+                    conference["event_datetime"],
+                    conference["location"],
+                    conference["registration_type"],
+                ),
+            )
+
+    @classmethod
+    def initialize_db(cls):
         connection = get_connection()
         cursor = connection.cursor()
         try:
+            cls.seed_users(cursor)
             cursor.execute(f"SELECT COUNT(*) FROM `{CONFERENCE_TABLE}`")
-            conference_count = cursor.fetchone()[0]
-
-            user_sql = f"""INSERT IGNORE INTO `{USER_TABLE}`
-                (user_id, f_name, l_name, email, is_admin,
-                 is_participant, is_organizer)
-                VALUES (%s, %s, %s, %s, %s, %s, %s)"""
-            for user in cls.default_users():
-                cursor.execute(
-                    user_sql,
-                    (
-                        user["user_id"],
-                        user["f_name"],
-                        user["l_name"],
-                        user["email"],
-                        user["is_admin"],
-                        user["is_participant"],
-                        user["is_organizer"],
-                    ),
-                )
-            if conference_count != 0:
-                connection.commit()
-                return
-
-            sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
-                (organizer_id, name, description, event_datetime, location,
-                 registration_type, is_published, published_at)
-                VALUES (%s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP)"""
-            for conference in cls.default_conferences():
-                cursor.execute(
-                    sql,
-                    (
-                        conference["organizer_id"],
-                        conference["name"],
-                        conference["description"],
-                        conference["event_datetime"],
-                        conference["location"],
-                        conference["registration_type"],
-                    ),
-                )
+            if cursor.fetchone()[0] == 0:
+                cls.seed_conferences(cursor)
             connection.commit()
         except Exception:
             connection.rollback()

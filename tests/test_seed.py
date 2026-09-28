@@ -9,7 +9,7 @@ class DefaultConferenceSeederTest(unittest.TestCase):
 
         self.assertEqual(
             {user["user_id"] for user in users},
-            {"u1", "u2"},
+            {"u1", "u2", "u3"},
         )
         organizer = next(user for user in users if user["user_id"] == "u1")
         admin = next(user for user in users if user["user_id"] == "u2")
@@ -17,6 +17,10 @@ class DefaultConferenceSeederTest(unittest.TestCase):
         self.assertFalse(organizer["is_admin"])
         self.assertTrue(admin["is_admin"])
         self.assertFalse(admin["is_organizer"])
+        participant = next(user for user in users if user["user_id"] == "u3")
+        self.assertTrue(participant["is_participant"])
+        self.assertFalse(participant["is_admin"])
+        self.assertFalse(participant["is_organizer"])
 
     def test_default_conferences_include_two_open_and_one_restricted(self):
         conferences = DefaultConferenceSeeder.default_conferences()
