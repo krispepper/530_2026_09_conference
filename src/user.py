@@ -54,13 +54,27 @@ def get_user_by_id(user_id):
     user_data = cursor.fetchone()
     cursor.close()
     connection.close()
-
     if user_data is None:
         return user_data
     
     return UserModel(*user_data)
 
+    
 
+def delete_user_by_id(user_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+
+    sql = f"""
+    DELETE FROM {USER_TABLE}
+    WHERE user_id = %s;
+    """
+
+    cursor.execute(sql, (user_id,))
+    connection.commit()
+
+    cursor.close()
+    connection.close()
 def is_user_organizer(user_id):
     connection = get_connection()
     cursor = connection.cursor()
