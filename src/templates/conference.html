@@ -19,6 +19,10 @@
                 <input type="text" name="participant_id" id="participant_id" required>
                 <button type="submit">Send invitation</button>
             </form>
+        {% elif current_user and current_user.is_participant and conference.membership_status == 'registered' %}
+            <form method="post" action="{{ url_for('unregister_participant_route', conference_id=conference.conference_id) }}">
+                <button type="submit">Unregister</button>
+            </form>
         {% elif current_user and current_user.is_participant %}
             <form method="post" action="{{ url_for('register_participant_route', conference_id=conference.conference_id) }}">
                 <button type="submit">Register</button>

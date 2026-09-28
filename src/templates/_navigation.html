@@ -1,7 +1,7 @@
 <nav>
     <a class="button" href="{{ url_for('get_index') }}">Home</a>
     <a class="button" href="{{ url_for('conferences_page') }}">View conferences</a>
-    {% if current_user and current_user.is_organizer %}
+    {% if current_user and (current_user.is_organizer or current_user.is_admin or current_user.is_participant) %}
         <a class="button" href="{{ url_for('my_conferences_page') }}">My conferences</a>
     {% endif %}
     {% if can_manage_conferences %}
