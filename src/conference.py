@@ -1,6 +1,6 @@
 from datetime import datetime
 
-from db import CONFERENCE_TABLE, get_connection
+from db import CONFERENCE_TABLE, PARTICIPANT_CONFERENCE_TABLE, get_connection
 
 VALID_REGISTRATION_TYPES = {"open", "restricted"}
 
@@ -60,18 +60,24 @@ def create_conference(
         connection.close()
 
 
-def get_conference_by_id(conference_id):
+def get_conference_by_id(conference_id, participant_id=None):
     connection = get_connection()
     cursor = connection.cursor()
-    sql = f"""SELECT conference_id, organizer_id, name, description,
-        event_datetime, location, registration_type, is_published,
-        created_at, published_at
-        FROM `{CONFERENCE_TABLE}`
-        WHERE conference_id = %s
-        AND is_published = TRUE
-        AND registration_type = 'open'"""
+    sql = f"""    SELECT c.conference_id, c.organizer_id, c.name, c.description,
+    c.event_datetime, c.location, c.registration_type, c.is_published,
+    c.created_at, c.published_at
+        FROM `{CONFERENCE_TABLE}` c
+        LEFT JOIN `{PARTICIPANT_CONFERENCE_TABLE}` pc
+            ON pc.conference_id = c.conference_id
+            AND pc.participant_id = %s
+        WHERE c.conference_id = %s
+        AND c.is_published = TRUE
+        AND (
+            c.registration_type = 'open'
+            OR pc.status IN ('invited', 'approved', 'registered')
+        )"""
     try:
-        cursor.execute(sql, (conference_id,))
+        cursor.execute(sql, (participant_id, conference_id))
         conference_data = cursor.fetchone()
     finally:
         cursor.close()

@@ -12,6 +12,7 @@ from conference import (
     publish_conference,
     validate_conference_form,
 )
+from participant_conf import invite_participant, register_participant
 
 from queries import *
 from user import *
@@ -181,7 +182,9 @@ def publish_conference_route(conference_id):
 
 @app.route('/conferences/<int:conference_id>', methods=['GET'])
 def conference_page(conference_id):
-    conference = get_conference_by_id(conference_id)
+    conference = get_conference_by_id(
+        conference_id, session.get('user_id')
+    )
     if conference is None and session.get('user_id'):
         conference = get_conference_for_organizer(
             conference_id, session['user_id']
@@ -193,6 +196,46 @@ def conference_page(conference_id):
         conference=conference,
         is_owner=conference.organizer_id == session.get('user_id'),
     )
+
+
+@app.route('/conferences/<int:conference_id>/invite', methods=['POST'])
+def invite_participant_route(conference_id):
+    organizer_id = session.get('user_id')
+    if not organizer_id or not (
+        is_user_organizer(organizer_id) or is_user_admin(organizer_id)
+    ):
+        return 'Organizer privileges required.', 403
+
+    participant_id = request.form.get('participant_id', '').strip()
+    if not participant_id:
+        return 'Participant ID is required.', 400
+
+    try:
+        invite_participant(participant_id, conference_id, organizer_id)
+    except ValueError as error:
+        return str(error), 404
+    except Error:
+        app.logger.exception("Unable to send conference invitation")
+        return 'The invitation could not be sent. Please try again.', 500
+
+    return redirect(url_for('conference_page', conference_id=conference_id))
+
+
+@app.route('/conferences/<int:conference_id>/register', methods=['POST'])
+def register_participant_route(conference_id):
+    participant_id = session.get('user_id')
+    if not participant_id:
+        return 'Login required.', 401
+    try:
+        register_participant(participant_id, conference_id)
+    except PermissionError as error:
+        return str(error), 403
+    except ValueError as error:
+        return str(error), 404
+    except Error:
+        app.logger.exception("Unable to register participant")
+        return 'Registration failed. Please try again.', 500
+    return redirect(url_for('conference_page', conference_id=conference_id))
 
 
 if __name__ == '__main__':

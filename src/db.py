@@ -10,7 +10,7 @@ USER = os.getenv("DB_USER")
 PASSWORD = os.getenv("DB_PASSWORD", "")
 HOST = os.getenv("DB_HOST", "localhost")
 PORT = os.getenv("DB_PORT")
-DB_DEV = os.getenv("DB_NAME_DEV", os.getenv("DB_NAME", "fall2026_530_conf"))
+DB_DEV = os.getenv("DB_NAME_DEV", os.getenv("DB_NAME"))
 DB_PROD = os.getenv("DB_NAME_PROD", DB_DEV)
 IS_PROD = os.getenv("IS_PROD", "false").strip().lower() in {
     "1",
@@ -22,6 +22,7 @@ DATABASE = DB_PROD if IS_PROD else DB_DEV
 
 USER_TABLE = "user"
 CONFERENCE_TABLE = "conference"
+PARTICIPANT_CONFERENCE_TABLE = "participant_conf"
 
 
 def get_connection():
@@ -72,12 +73,30 @@ def create_conference_table_sql():
     );"""
 
 
+def create_participant_conference_table_sql():
+    return f"""CREATE TABLE IF NOT EXISTS `{PARTICIPANT_CONFERENCE_TABLE}` (
+    `participant_id` VARCHAR(10) NOT NULL,
+    `conference_id` INT NOT NULL,
+    `status` ENUM('invited', 'approved', 'registered') NOT NULL DEFAULT 'invited',
+    `invited_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `registered_at` TIMESTAMP NULL DEFAULT NULL,
+    PRIMARY KEY (`participant_id`, `conference_id`),
+    CONSTRAINT `fk_participant_conf_participant`
+        FOREIGN KEY (`participant_id`) REFERENCES `{USER_TABLE}` (`user_id`),
+    CONSTRAINT `fk_participant_conf_conference`
+        FOREIGN KEY (`conference_id`) REFERENCES `{CONFERENCE_TABLE}` (`conference_id`),
+    INDEX `idx_participant_conf_conference` (`conference_id`),
+    INDEX `idx_participant_conf_status` (`status`)
+    );"""
+
+
 def create_tables():
     connection = get_connection()
     cursor = connection.cursor()
     try:
         cursor.execute(create_user_table_sql())
         cursor.execute(create_conference_table_sql())
+        cursor.execute(create_participant_conference_table_sql())
         connection.commit()
     except Exception:
         connection.rollback()

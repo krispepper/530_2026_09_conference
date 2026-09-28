@@ -12,7 +12,20 @@
     <p><strong>Location:</strong> {{ conference.location }}</p>
     <p><strong>Registration:</strong> {{ conference.registration_type|capitalize }}</p>
     {% if conference.is_published %}
-        <p>Registration is available through the participant registration flow.</p>
+        {% if is_owner and conference.registration_type == 'restricted' %}
+            <h2>Invite a participant</h2>
+            <form method="post" action="{{ url_for('invite_participant_route', conference_id=conference.conference_id) }}">
+                <label for="participant_id">Participant ID</label>
+                <input type="text" name="participant_id" id="participant_id" required>
+                <button type="submit">Send invitation</button>
+            </form>
+        {% elif current_user and current_user.is_participant %}
+            <form method="post" action="{{ url_for('register_participant_route', conference_id=conference.conference_id) }}">
+                <button type="submit">Register</button>
+            </form>
+        {% else %}
+            <p>Registration is available through the participant registration flow.</p>
+        {% endif %}
     {% elif is_owner %}
         <p>This conference is a draft and is not visible to participants.</p>
         <form method="post" action="{{ url_for('publish_conference_route', conference_id=conference.conference_id) }}">
