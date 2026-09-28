@@ -193,9 +193,15 @@ def conference_page(conference_id):
         conference=conference,
         is_owner=conference.organizer_id == session.get('user_id'),
     )
-
+@app.route('/delete_user/<user_id>', methods=['POST'])
+def delete_user(user_id):
+    try:
+        delete_user_by_id(user_id)
+        return "User deleted successfully"
+    except Exception as e:
+        return f"Error deleting user: {e}"
 
 if __name__ == '__main__':
     create_tables()
     DefaultConferenceSeeder.seed_if_empty()
-    app.run(debug=True, port=int(PORT) if PORT else 5000)
+    app.run(debug=True, port=int(PORT) if PORT else 5000
