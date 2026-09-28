@@ -158,3 +158,29 @@ def register_participant(participant_id, conference_id):
     finally:
         cursor.close()
         connection.close()
+
+
+def unregister_participant(participant_id, conference_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            f"""DELETE FROM `{PARTICIPANT_CONFERENCE_TABLE}`
+                WHERE participant_id = %s
+                  AND conference_id = %s
+                  AND status = %s""",
+            (
+                participant_id,
+                conference_id,
+                ParticipantConferenceStatus.REGISTERED.value,
+            ),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("You are not registered for this conference.")
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        connection.close()

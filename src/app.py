@@ -252,6 +252,21 @@ def register_participant_route(conference_id):
     return redirect(url_for('conference_page', conference_id=conference_id))
 
 
+@app.route('/conferences/<int:conference_id>/unregister', methods=['POST'])
+def unregister_participant_route(conference_id):
+    participant_id = session.get('user_id')
+    if not participant_id:
+        return 'Login required.', 401
+    try:
+        unregister_participant(participant_id, conference_id)
+    except ValueError as error:
+        return str(error), 400
+    except Error:
+        app.logger.exception("Unable to unregister participant")
+        return 'Unregistration failed. Please try again.', 500
+    return redirect(url_for('my_conferences_page'))
+
+
 if __name__ == '__main__':
     create_tables()
     DefaultConferenceSeeder.initialize_db()
