@@ -30,6 +30,23 @@ class ParticipantConferenceModel:
         self.registered_at = registered_at
 
 
+def get_participant_conference_status(participant_id, conference_id):
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            f"""SELECT status
+                FROM `{PARTICIPANT_CONFERENCE_TABLE}`
+                WHERE participant_id = %s AND conference_id = %s""",
+            (participant_id, conference_id),
+        )
+        status = cursor.fetchone()
+    finally:
+        cursor.close()
+        connection.close()
+    return ParticipantConferenceStatus(status[0]).value if status else None
+
+
 def invite_participant(participant_id, conference_id, organizer_id):
     connection = get_connection()
     cursor = connection.cursor()
