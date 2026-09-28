@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from db import CONFERENCE_TABLE, PARTICIPANT_CONFERENCE_TABLE, get_connection
+from participant_conf import ParticipantConferenceStatus
 
 VALID_REGISTRATION_TYPES = {"open", "restricted"}
 
@@ -74,10 +75,19 @@ def get_conference_by_id(conference_id, participant_id=None):
         AND c.is_published = TRUE
         AND (
             c.registration_type = 'open'
-            OR pc.status IN ('invited', 'approved', 'registered')
+            OR pc.status IN (%s, %s, %s)
         )"""
     try:
-        cursor.execute(sql, (participant_id, conference_id))
+        cursor.execute(
+            sql,
+            (
+                participant_id,
+                conference_id,
+                ParticipantConferenceStatus.INVITED.value,
+                ParticipantConferenceStatus.APPROVED.value,
+                ParticipantConferenceStatus.REGISTERED.value,
+            ),
+        )
         conference_data = cursor.fetchone()
     finally:
         cursor.close()

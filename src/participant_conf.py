@@ -1,9 +1,17 @@
+from enum import Enum
+
 from db import (
     CONFERENCE_TABLE,
     PARTICIPANT_CONFERENCE_TABLE,
     USER_TABLE,
     get_connection,
 )
+
+
+class ParticipantConferenceStatus(str, Enum):
+    INVITED = "invited"
+    APPROVED = "approved"
+    REGISTERED = "registered"
 
 
 class ParticipantConferenceModel:
@@ -17,7 +25,7 @@ class ParticipantConferenceModel:
     ):
         self.participant_id = participant_id
         self.conference_id = conference_id
-        self.status = status
+        self.status = ParticipantConferenceStatus(status)
         self.invited_at = invited_at
         self.registered_at = registered_at
 
@@ -61,12 +69,20 @@ def invite_participant(participant_id, conference_id, organizer_id):
         cursor.execute(
             f"""INSERT INTO `{PARTICIPANT_CONFERENCE_TABLE}`
                 (participant_id, conference_id, status)
-                VALUES (%s, %s, 'invited')""",
-            (participant_id, conference_id),
+            VALUES (%s, %s, %s)""",
+            (
+                participant_id,
+                conference_id,
+                ParticipantConferenceStatus.INVITED.value,
+            ),
         )
         connection.commit()
         return ParticipantConferenceModel(
-            participant_id, conference_id, "invited", None, None
+            participant_id,
+            conference_id,
+            ParticipantConferenceStatus.INVITED,
+            None,
+            None,
         )
     except Exception:
         connection.rollback()
@@ -102,10 +118,16 @@ def register_participant(participant_id, conference_id):
         if registration_type == "restricted":
             cursor.execute(
                 f"""UPDATE `{PARTICIPANT_CONFERENCE_TABLE}`
-                    SET status = 'registered', registered_at = CURRENT_TIMESTAMP
+                    SET status = %s, registered_at = CURRENT_TIMESTAMP
                     WHERE participant_id = %s AND conference_id = %s
-                      AND status IN ('invited', 'approved')""",
-                (participant_id, conference_id),
+                      AND status IN (%s, %s)""",
+                (
+                    ParticipantConferenceStatus.REGISTERED.value,
+                    participant_id,
+                    conference_id,
+                    ParticipantConferenceStatus.INVITED.value,
+                    ParticipantConferenceStatus.APPROVED.value,
+                ),
             )
             if cursor.rowcount != 1:
                 raise PermissionError(
@@ -115,12 +137,19 @@ def register_participant(participant_id, conference_id):
             cursor.execute(
                 f"""INSERT INTO `{PARTICIPANT_CONFERENCE_TABLE}`
                     (participant_id, conference_id, status, registered_at)
-                    VALUES (%s, %s, 'registered', CURRENT_TIMESTAMP)
+                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
                     ON DUPLICATE KEY UPDATE
-                        status = IF(status = 'registered', status, 'registered'),
-                        registered_at = IF(status = 'registered',
+                        status = IF(status = %s, status, %s),
+                        registered_at = IF(status = %s,
                                            registered_at, CURRENT_TIMESTAMP)""",
-                (participant_id, conference_id),
+                (
+                    participant_id,
+                    conference_id,
+                    ParticipantConferenceStatus.REGISTERED.value,
+                    ParticipantConferenceStatus.REGISTERED.value,
+                    ParticipantConferenceStatus.REGISTERED.value,
+                    ParticipantConferenceStatus.REGISTERED.value,
+                ),
             )
         connection.commit()
     except Exception:
