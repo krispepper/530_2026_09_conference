@@ -1,4 +1,5 @@
 from datetime import datetime
+from uuid import uuid4
 
 from db import CONFERENCE_TABLE, PARTICIPANT_CONFERENCE_TABLE, get_connection
 from participant_conf import ParticipantConferenceStatus
@@ -43,16 +44,17 @@ def create_conference(
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
-        (organizer_id, name, description, event_datetime, location,
+        (conference_id, organizer_id, name, description, event_datetime, location,
          registration_type, is_published, published_at)
-        VALUES (%s, %s, %s, %s, %s, %s, FALSE, NULL)"""
+        VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, NULL)"""
     try:
+        conference_id = str(uuid4())
         cursor.execute(sql, (
-            organizer_id, name, description, event_datetime, location,
-            registration_type,
+            conference_id, organizer_id, name, description, event_datetime,
+            location, registration_type,
         ))
         connection.commit()
-        return cursor.lastrowid
+        return conference_id
     except Exception:
         connection.rollback()
         raise

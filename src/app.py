@@ -2,7 +2,6 @@ from flask import Flask, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 from werkzeug.routing import BuildError
 
-from db import create_tables
 from db_seeder import DefaultConferenceSeeder
 from conference import (
     create_conference,
@@ -184,7 +183,7 @@ def create_conference_route():
     return redirect(url_for('conference_page', conference_id=conference_id))
 
 
-@app.route('/conferences/<int:conference_id>/publish', methods=['POST'])
+@app.route('/conferences/<conference_id>/publish', methods=['POST'])
 def publish_conference_route(conference_id):
     organizer_id = session.get('user_id')
     if not organizer_id or not (
@@ -203,7 +202,7 @@ def publish_conference_route(conference_id):
     return redirect(url_for('conference_page', conference_id=conference_id))
 
 
-@app.route('/conferences/<int:conference_id>', methods=['GET'])
+@app.route('/conferences/<conference_id>', methods=['GET'])
 def conference_page(conference_id):
     conference = get_conference_by_id(
         conference_id, session.get('user_id')
@@ -225,7 +224,7 @@ def conference_page(conference_id):
     )
 
 
-@app.route('/conferences/<int:conference_id>/invite', methods=['POST'])
+@app.route('/conferences/<conference_id>/invite', methods=['POST'])
 def invite_participant_route(conference_id):
     organizer_id = session.get('user_id')
     if not organizer_id or not (
@@ -248,7 +247,7 @@ def invite_participant_route(conference_id):
     return redirect(url_for('conference_page', conference_id=conference_id))
 
 
-@app.route('/conferences/<int:conference_id>/register', methods=['POST'])
+@app.route('/conferences/<conference_id>/register', methods=['POST'])
 def register_participant_route(conference_id):
     participant_id = session.get('user_id')
     if not participant_id:
@@ -265,7 +264,7 @@ def register_participant_route(conference_id):
     return redirect(url_for('conference_page', conference_id=conference_id))
 
 
-@app.route('/conferences/<int:conference_id>/unregister', methods=['POST'])
+@app.route('/conferences/<conference_id>/unregister', methods=['POST'])
 def unregister_participant_route(conference_id):
     participant_id = session.get('user_id')
     if not participant_id:
@@ -281,6 +280,10 @@ def unregister_participant_route(conference_id):
 
 
 if __name__ == '__main__':
+    if RESET_ON_STARTUP:
+        reset_tables()
+
+    create_databases()
     create_tables()
     DefaultConferenceSeeder.initialize_db()
     app.run(debug=True, port=int(PORT) if PORT else 5000)
