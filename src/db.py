@@ -18,6 +18,12 @@ IS_PROD = os.getenv("IS_PROD", "false").strip().lower() in {
     "yes",
     "on",
 }
+RESET_ON_STARTUP = os.getenv("DB_RESET_ON_STARTUP", "false").strip().lower() in {
+    "1",
+    "true",
+    "yes",
+    "on",
+}
 DATABASE = DB_PROD if IS_PROD else DB_DEV
 
 USER_TABLE = "user"
@@ -40,6 +46,29 @@ def get_connection():
 print("Using DB:", DATABASE)
 
 
+def create_databases():
+    connection_args = {
+        "user": USER,
+        "password": PASSWORD,
+        "host": HOST,
+    }
+    if PORT:
+        connection_args["port"] = int(PORT)
+
+    connection = mysql.connector.connect(**connection_args)
+    cursor = connection.cursor()
+    try:
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{DB_DEV}`")
+        cursor.execute(f"CREATE DATABASE IF NOT EXISTS `{DB_PROD}`")
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        connection.close()
+
+
 def create_user_table_sql():
     return f"""CREATE TABLE IF NOT EXISTS `{USER_TABLE}` (
     `user_id` varchar(10) NOT NULL,
@@ -55,7 +84,7 @@ def create_user_table_sql():
 
 def create_conference_table_sql():
     return f"""CREATE TABLE IF NOT EXISTS `{CONFERENCE_TABLE}` (
-    `conference_id` INT NOT NULL AUTO_INCREMENT,
+    `conference_id` VARCHAR(36) NOT NULL,
     `organizer_id` VARCHAR(10) NOT NULL,
     `name` VARCHAR(150) NOT NULL,
     `description` TEXT NOT NULL,
@@ -76,7 +105,7 @@ def create_conference_table_sql():
 def create_participant_conference_table_sql():
     return f"""CREATE TABLE IF NOT EXISTS `{PARTICIPANT_CONFERENCE_TABLE}` (
     `participant_id` VARCHAR(10) NOT NULL,
-    `conference_id` INT NOT NULL,
+    `conference_id` VARCHAR(36) NOT NULL,
     `status` ENUM('invited', 'approved', 'registered') NOT NULL DEFAULT 'invited',
     `invited_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `registered_at` TIMESTAMP NULL DEFAULT NULL,
@@ -104,3 +133,26 @@ def create_tables():
     finally:
         cursor.close()
         connection.close()
+
+
+def reset_tables():
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            f"DROP TABLE IF EXISTS `{PARTICIPANT_CONFERENCE_TABLE}`"
+        )
+        cursor.execute(f"DROP TABLE IF EXISTS `{CONFERENCE_TABLE}`")
+        cursor.execute(f"DROP TABLE IF EXISTS `{USER_TABLE}`")
+        connection.commit()
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        connection.close()
+
+
+if __name__ == "__main__":
+    create_databases()
+    print(f"Created or verified databases: {DB_DEV}, {DB_PROD}")

@@ -1,6 +1,7 @@
 from datetime import datetime
 
 from db import CONFERENCE_TABLE, USER_TABLE, get_connection
+from participant_conf import invite_participant
 
 
 class DefaultConferenceSeeder:
@@ -9,6 +10,7 @@ class DefaultConferenceSeeder:
     ORGANIZER_ID = "u1"
     ADMIN_ID = "u2"
     PARTICIPANT_ID = "u3"
+    PARTICIPANT_ID_2 = "u4"
 
     @classmethod
     def default_users(cls):
@@ -40,12 +42,22 @@ class DefaultConferenceSeeder:
                 "is_participant": True,
                 "is_organizer": False,
             },
+            {
+                "user_id": cls.PARTICIPANT_ID_2,
+                "f_name": "Conference",
+                "l_name": "Participant 2",
+                "email": "invited@example.edu",
+                "is_admin": False,
+                "is_participant": True,
+                "is_organizer": False,
+            },
         ]
 
     @classmethod
     def default_conferences(cls):
         return [
             {
+                "conference_id": "c1",
                 "organizer_id": cls.ORGANIZER_ID,
                 "name": "Adelphi Software Engineering Conference",
                 "description": "An open conference for software engineering students.",
@@ -54,6 +66,7 @@ class DefaultConferenceSeeder:
                 "registration_type": "open",
             },
             {
+                "conference_id": "c2",
                 "organizer_id": cls.ADMIN_ID,
                 "name": "Spring Technology Research Forum",
                 "description": "An open forum for technology research presentations.",
@@ -62,6 +75,7 @@ class DefaultConferenceSeeder:
                 "registration_type": "open",
             },
             {
+                "conference_id": "c3",
                 "organizer_id": cls.ORGANIZER_ID,
                 "name": "Invited Leadership Workshop",
                 "description": "A restricted workshop for invited participants.",
@@ -94,13 +108,14 @@ class DefaultConferenceSeeder:
     @classmethod
     def seed_conferences(cls, cursor):
         conference_sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
-            (organizer_id, name, description, event_datetime, location,
+            (conference_id, organizer_id, name, description, event_datetime, location,
              registration_type, is_published, published_at)
             VALUES (%s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP)"""
         for conference in cls.default_conferences():
             cursor.execute(
                 conference_sql,
                 (
+                    conference["conference_id"],
                     conference["organizer_id"],
                     conference["name"],
                     conference["description"],
@@ -116,10 +131,23 @@ class DefaultConferenceSeeder:
         cursor = connection.cursor()
         try:
             cls.seed_users(cursor)
-            cursor.execute(f"SELECT COUNT(*) FROM `{CONFERENCE_TABLE}`")
-            if cursor.fetchone()[0] == 0:
-                cls.seed_conferences(cursor)
+            cls.seed_conferences(cursor)
+
+            # Invite the second participant to the restricted conference
+            restricted_conference = [
+                conference
+                for conference in cls.default_conferences()
+                if conference["registration_type"] == "restricted"
+            ]
+            restricted_conference_id = restricted_conference[0]["conference_id"]
+            restricted_conference_organizer_id = restricted_conference[0]["organizer_id"]
+            invite_participant(
+                participant_id=cls.PARTICIPANT_ID_2,
+                conference_id=restricted_conference_id,
+                organizer_id=restricted_conference_organizer_id
+            )
             connection.commit()
+
         except Exception:
             connection.rollback()
             raise
