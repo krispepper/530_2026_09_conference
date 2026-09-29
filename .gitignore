@@ -8,3 +8,4 @@
 !*.sh
 !src/templates
 !src/templates/*.html
+!tests/*.py
