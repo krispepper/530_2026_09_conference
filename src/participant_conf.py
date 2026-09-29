@@ -9,6 +9,8 @@ from db import (
 
 
 class ParticipantConferenceStatus(str, Enum):
+    """Defines the allowed participant-conference relationship statuses."""
+
     INVITED = "invited"
     APPROVED = "approved"
     REGISTERED = "registered"
@@ -31,6 +33,10 @@ class ParticipantConferenceModel:
 
 
 def get_participant_conference_status(participant_id, conference_id):
+    """
+    Gets a participant's current status for a conference.
+    @return: status string or None
+    """
     connection = get_connection()
     cursor = connection.cursor()
     try:
@@ -47,7 +53,12 @@ def get_participant_conference_status(participant_id, conference_id):
     return ParticipantConferenceStatus(status[0]).value if status else None
 
 
+#TODO: try to simplify the function...
 def invite_participant(participant_id, conference_id, organizer_id):
+    """
+    Creates an invitation for a participant to a restricted conference.
+    @return: ParticipantConferenceModel
+    """
     connection = get_connection()
     cursor = connection.cursor()
     try:
@@ -110,6 +121,9 @@ def invite_participant(participant_id, conference_id, organizer_id):
 
 
 def register_participant(participant_id, conference_id):
+    """
+    Registers a participant for a published conference.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     try:
@@ -178,6 +192,9 @@ def register_participant(participant_id, conference_id):
 
 
 def unregister_participant(participant_id, conference_id):
+    """
+    Unregisters a participant from a conference.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     try:

@@ -2,7 +2,7 @@ from flask import Flask, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 from werkzeug.routing import BuildError
 
-from db_seeder import DefaultConferenceSeeder
+from db import reset_tables, RESET_ON_STARTUP, create_databases, create_tables
 from conference import (
     create_conference,
     get_conference_by_id,
@@ -12,6 +12,7 @@ from conference import (
     publish_conference,
     validate_conference_form,
 )
+from db_seeder import DBSeeder
 from participant_conf import (
     get_participant_conference_status,
     invite_participant,
@@ -19,7 +20,6 @@ from participant_conf import (
     unregister_participant,
 )
 
-from queries import *
 from user import *
 import os
 from dotenv import load_dotenv, dotenv_values
@@ -43,11 +43,13 @@ app.config["SECRET_KEY"] = SECRET_KEY
 
 @app.route('/', methods=['GET'])
 def get_index():
+    """Render the application landing page."""
     return render_template('index.html')
 
 
 @app.context_processor
 def navigation_context():
+    """Provide the current user and navigation permissions to templates."""
     user_id = session.get('user_id')
     current_user = get_user_by_id(user_id) if user_id else None
     return {
@@ -62,6 +64,7 @@ def navigation_context():
 
 @app.route('/login', methods=['GET', 'POST'])
 def login():
+    """Render the login page or authenticate a user and start a session."""
     if request.method == 'GET':
         return render_template('login.html', error=None)
 
@@ -90,12 +93,14 @@ def login():
 
 @app.route('/logout', methods=['GET', 'POST'])
 def logout():
+    """Clear the current session and redirect to the login page."""
     session.clear()
     return redirect(url_for('login'))
 
 
 @app.route('/add_user', methods=['POST'])
 def add_user():
+    """Create a user from submitted form data and display the user profile."""
     fields = ['user_id', 'f_name', 'l_name', 'email', 'is_participant', 'is_admin', 'is_organizer']
     values = [(request.form[f] if not f.startswith("is_") else (f in request.form)) for f in
               fields]  # [request.form[f] for f in fields]
@@ -113,16 +118,19 @@ def add_user():
 
 @app.route('/add_user', methods=['GET'])
 def add_user_page():
+    """Render the new-user form."""
     return render_template('add_user.html')
 
 
 @app.route('/view_user/<user_id>', methods=['GET'])
 def view_user_page(**kwargs):
+    """Render the profile page for the requested user."""
     return render_template('view_user.html', dat=get_user_by_id(request.view_args['user_id']).__dict__)
 
 
 @app.route('/conferences', methods=['GET'])
 def conferences_page():
+    """Render the list of published open conferences."""
     return render_template(
         'conferences.html',
         conferences=get_published_conferences(),
@@ -131,6 +139,7 @@ def conferences_page():
 
 @app.route('/my-conferences', methods=['GET'])
 def my_conferences_page():
+    """Render conferences owned by or associated with the signed-in user."""
     user_id = session.get('user_id')
     if not user_id:
         return 'Login required.', 401
@@ -148,6 +157,7 @@ def my_conferences_page():
 
 @app.route('/conferences/new', methods=['GET'])
 def create_conference_page():
+    """Render the conference creation form for an organizer or admin."""
     if not session.get('user_id') or not (
         is_user_organizer(session['user_id'])
         or is_user_admin(session['user_id'])
@@ -158,6 +168,7 @@ def create_conference_page():
 
 @app.route('/conferences', methods=['POST'])
 def create_conference_route():
+    """Create a new conference."""
     organizer_id = session.get('user_id')
     if not organizer_id or not (
         is_user_organizer(organizer_id) or is_user_admin(organizer_id)
@@ -185,6 +196,7 @@ def create_conference_route():
 
 @app.route('/conferences/<conference_id>/publish', methods=['POST'])
 def publish_conference_route(conference_id):
+    """Publish a conference owned by the signed-in organizer or admin."""
     organizer_id = session.get('user_id')
     if not organizer_id or not (
         is_user_organizer(organizer_id) or is_user_admin(organizer_id)
@@ -204,6 +216,7 @@ def publish_conference_route(conference_id):
 
 @app.route('/conferences/<conference_id>', methods=['GET'])
 def conference_page(conference_id):
+    """Render a conference when the current user has access to it."""
     conference = get_conference_by_id(
         conference_id, session.get('user_id')
     )
@@ -224,8 +237,11 @@ def conference_page(conference_id):
     )
 
 
+#TODO: Add a route for inviting participants to a open conference case?
+# This should only be accessible to organizers and admins!
 @app.route('/conferences/<conference_id>/invite', methods=['POST'])
 def invite_participant_route(conference_id):
+    """Invite a participant to a restricted conference."""
     organizer_id = session.get('user_id')
     if not organizer_id or not (
         is_user_organizer(organizer_id) or is_user_admin(organizer_id)
@@ -249,6 +265,7 @@ def invite_participant_route(conference_id):
 
 @app.route('/conferences/<conference_id>/register', methods=['POST'])
 def register_participant_route(conference_id):
+    """Register the signed-in participant for a conference."""
     participant_id = session.get('user_id')
     if not participant_id:
         return 'Login required.', 401
@@ -266,6 +283,7 @@ def register_participant_route(conference_id):
 
 @app.route('/conferences/<conference_id>/unregister', methods=['POST'])
 def unregister_participant_route(conference_id):
+    """Remove the signed-in participant from a registered conference."""
     participant_id = session.get('user_id')
     if not participant_id:
         return 'Login required.', 401
@@ -280,10 +298,15 @@ def unregister_participant_route(conference_id):
 
 
 if __name__ == '__main__':
+    """Entry point for the application."""
     if RESET_ON_STARTUP:
         reset_tables()
 
-    create_databases()
+    # Create testing DB if not in production.
+    # Otherwise, assume the production DB already exists and is managed externally. (compsci server)
+    if not IS_PROD:
+        create_databases()
+
     create_tables()
-    DefaultConferenceSeeder.initialize_db()
+    DBSeeder.initialize_db()
     app.run(debug=True, port=int(PORT) if PORT else 5000)

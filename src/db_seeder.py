@@ -4,8 +4,8 @@ from db import CONFERENCE_TABLE, USER_TABLE, get_connection
 from participant_conf import invite_participant
 
 
-class DefaultConferenceSeeder:
-    """Creates sample conferences for a newly initialized database."""
+class DBSeeder:
+    """Creates sample conferences and users for a newly initialized database."""
 
     ORGANIZER_ID = "u1"
     ADMIN_ID = "u2"
@@ -14,6 +14,10 @@ class DefaultConferenceSeeder:
 
     @classmethod
     def default_users(cls):
+        """
+        Builds the default users used for a newly initialized database.
+        @return: list of user dictionaries
+        """
         return [
             {
                 "user_id": cls.ORGANIZER_ID,
@@ -55,6 +59,10 @@ class DefaultConferenceSeeder:
 
     @classmethod
     def default_conferences(cls):
+        """
+        Builds the default conferences used for a newly initialized database.
+        @return: list of conference dictionaries
+        """
         return [
             {
                 "conference_id": "c1",
@@ -87,6 +95,10 @@ class DefaultConferenceSeeder:
 
     @classmethod
     def seed_users(cls, cursor):
+        """
+        Inserts the default users.
+        @param cursor: active database cursor
+        """
         user_sql = f"""INSERT IGNORE INTO `{USER_TABLE}`
             (user_id, f_name, l_name, email, is_admin,
              is_participant, is_organizer)
@@ -107,6 +119,10 @@ class DefaultConferenceSeeder:
 
     @classmethod
     def seed_conferences(cls, cursor):
+        """
+        Inserts the default conferences.
+        @param cursor: active database cursor
+        """
         conference_sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
             (conference_id, organizer_id, name, description, event_datetime, location,
              registration_type, is_published, published_at)
@@ -127,6 +143,9 @@ class DefaultConferenceSeeder:
 
     @classmethod
     def initialize_db(cls):
+        """
+        Creates the default users and conferences, then seeds the demo DB.
+        """
         connection = get_connection()
         cursor = connection.cursor()
 

@@ -18,8 +18,11 @@ class UserModel:
 
 
 
-
+#TODO: refactor to return user_id just like create_conference() returns conference_id...
 def create_user(user_id, f_name, l_name, email, is_participant, is_admin, is_organizer):
+    """
+    Creates a user in the database.
+    """
 
     connection = get_connection()
     cursor = connection.cursor()
@@ -40,6 +43,10 @@ def create_user(user_id, f_name, l_name, email, is_participant, is_admin, is_org
 
 
 def get_user_by_id(user_id):
+    """
+    Gets a user by their unique user ID.
+    @return: UserModel or None
+    """
 
     connection = get_connection()
     cursor = connection.cursor()
@@ -62,6 +69,10 @@ def get_user_by_id(user_id):
 
 
 def is_user_organizer(user_id):
+    """
+    Checks whether a user has organizer privileges.
+    @return: True if the user is an organizer, otherwise False
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"SELECT is_organizer FROM `{USER_TABLE}` WHERE user_id = %s"
@@ -74,7 +85,13 @@ def is_user_organizer(user_id):
     return bool(user_data and user_data[0])
 
 
+
+#TODO: remove admin privileges, organizer can be the admin...
 def is_user_admin(user_id):
+    """
+    Checks whether a user has administrator privileges.
+    @return: True if the user is an administrator, otherwise False
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"SELECT is_admin FROM `{USER_TABLE}` WHERE user_id = %s"

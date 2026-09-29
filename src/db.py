@@ -32,6 +32,10 @@ PARTICIPANT_CONFERENCE_TABLE = "participant_conf"
 
 
 def get_connection():
+    """
+    Opens a connection to the selected application database.
+    @return: MySQL connection
+    """
     connection_args = {
         "user": USER,
         "password": PASSWORD,
@@ -47,6 +51,10 @@ print("Using DB:", DATABASE)
 
 
 def create_databases():
+    """
+    Creates the development databases if they do not exist.
+    Only used for testing purposes (when testing outside compsci server environment).
+    """
     connection_args = {
         "user": USER,
         "password": PASSWORD,
@@ -70,6 +78,10 @@ def create_databases():
 
 
 def create_user_table_sql():
+    """
+    Builds the SQL query for the create user table.
+    @return: SQL query string
+    """
     return f"""CREATE TABLE IF NOT EXISTS `{USER_TABLE}` (
     `user_id` varchar(10) NOT NULL,
     `f_name` varchar(30) NOT NULL,
@@ -83,6 +95,10 @@ def create_user_table_sql():
 
 
 def create_conference_table_sql():
+    """
+    Builds the SQL statement for the create conference table.
+    @return: SQL query string
+    """
     return f"""CREATE TABLE IF NOT EXISTS `{CONFERENCE_TABLE}` (
     `conference_id` VARCHAR(36) NOT NULL,
     `organizer_id` VARCHAR(10) NOT NULL,
@@ -103,6 +119,10 @@ def create_conference_table_sql():
 
 
 def create_participant_conference_table_sql():
+    """
+    Builds the SQL statement for the participant-conference relationship table. (many-to-many)
+    @return: SQL query string
+    """
     return f"""CREATE TABLE IF NOT EXISTS `{PARTICIPANT_CONFERENCE_TABLE}` (
     `participant_id` VARCHAR(10) NOT NULL,
     `conference_id` VARCHAR(36) NOT NULL,
@@ -120,6 +140,9 @@ def create_participant_conference_table_sql():
 
 
 def create_tables():
+    """
+    Creates all application tables in foreign-key dependency order.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     try:
@@ -136,6 +159,10 @@ def create_tables():
 
 
 def reset_tables():
+    """
+    Drops all DB tables in reverse foreign-key dependency order.
+    Only used for testing purposes (when testing outside compsci server environment).
+    """
     connection = get_connection()
     cursor = connection.cursor()
     try:

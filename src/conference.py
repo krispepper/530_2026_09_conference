@@ -41,14 +41,20 @@ def create_conference(
     location,
     registration_type,
 ):
+    """
+    Creates conference in the database.
+    @return: conference_id
+    """
     connection = get_connection()
     cursor = connection.cursor()
+
+    # Insert the new conference into the database
     sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
         (conference_id, organizer_id, name, description, event_datetime, location,
          registration_type, is_published, published_at)
         VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, NULL)"""
     try:
-        conference_id = str(uuid4())
+        conference_id = str(uuid4()) # UUID auto generated...
         cursor.execute(sql, (
             conference_id, organizer_id, name, description, event_datetime,
             location, registration_type,
@@ -63,9 +69,14 @@ def create_conference(
         connection.close()
 
 
-def get_conference_by_id(conference_id, participant_id=None):
+def get_conference_by_id(conference_id, participant_id=None, is_published=True):
+    """
+    Gets a published conference by ID when the user has access to it.
+    @return: ConferenceModel or None
+    """
     connection = get_connection()
     cursor = connection.cursor()
+
     sql = f"""    SELECT c.conference_id, c.organizer_id, c.name, c.description,
     c.event_datetime, c.location, c.registration_type, c.is_published,
     c.created_at, c.published_at
@@ -74,7 +85,7 @@ def get_conference_by_id(conference_id, participant_id=None):
             ON pc.conference_id = c.conference_id
             AND pc.participant_id = %s
         WHERE c.conference_id = %s
-        AND c.is_published = TRUE
+        AND c.is_published = {is_published}
         AND (
             c.registration_type = 'open'
             OR pc.status IN (%s, %s, %s)
@@ -97,7 +108,12 @@ def get_conference_by_id(conference_id, participant_id=None):
     return ConferenceModel(*conference_data) if conference_data else None
 
 
+#TODO: get by just conference_id?
 def get_conference_for_organizer(conference_id, organizer_id):
+    """
+    Gets a conference by ID for its organizer, including unpublished drafts.
+    @return: ConferenceModel or None
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""SELECT conference_id, organizer_id, name, description,
@@ -115,6 +131,10 @@ def get_conference_for_organizer(conference_id, organizer_id):
 
 
 def publish_conference(conference_id, organizer_id):
+    """
+    Publishes an unpublished conference owned by the organizer.
+    @return: None
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""UPDATE `{CONFERENCE_TABLE}`
@@ -134,6 +154,10 @@ def publish_conference(conference_id, organizer_id):
 
 
 def get_published_conferences():
+    """
+    Gets all published conferences that allow open registration.
+    @return: list of ConferenceModel objects
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""SELECT conference_id, organizer_id, name, description,
@@ -152,6 +176,10 @@ def get_published_conferences():
 
 
 def get_conferences_for_organizer(organizer_id):
+    """
+    Gets all conferences created by an organizer.
+    @return: list of ConferenceModel objects
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""SELECT conference_id, organizer_id, name, description,
@@ -169,7 +197,12 @@ def get_conferences_for_organizer(organizer_id):
     return [ConferenceModel(*data) for data in conference_data]
 
 
+#TODO: use only get_conference_by_organizer / extract common logic...
 def get_my_conferences(user_id, is_organizer=False):
+    """
+    Gets conferences owned by an organizer or joined by a participant.
+    @return: list of ConferenceModel objects with membership status
+    """
     connection = get_connection()
     cursor = connection.cursor()
     if is_organizer:
@@ -207,6 +240,10 @@ def get_my_conferences(user_id, is_organizer=False):
 
 
 def validate_conference_form(form):
+    """
+    Validates and normalizes submitted conference form values.
+    @return: tuple of values dictionary and errors dictionary
+    """
     values = {
         "name": form.get("name", "").strip(),
         "description": form.get("description", "").strip(),
