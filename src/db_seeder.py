@@ -110,7 +110,7 @@ class DefaultConferenceSeeder:
         conference_sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
             (conference_id, organizer_id, name, description, event_datetime, location,
              registration_type, is_published, published_at)
-            VALUES (%s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP)"""
+            VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP)"""
         for conference in cls.default_conferences():
             cursor.execute(
                 conference_sql,
@@ -129,28 +129,30 @@ class DefaultConferenceSeeder:
     def initialize_db(cls):
         connection = get_connection()
         cursor = connection.cursor()
+
         try:
             cls.seed_users(cursor)
             cls.seed_conferences(cursor)
-
-            # Invite the second participant to the restricted conference
-            restricted_conference = [
-                conference
-                for conference in cls.default_conferences()
-                if conference["registration_type"] == "restricted"
-            ]
-            restricted_conference_id = restricted_conference[0]["conference_id"]
-            restricted_conference_organizer_id = restricted_conference[0]["organizer_id"]
-            invite_participant(
-                participant_id=cls.PARTICIPANT_ID_2,
-                conference_id=restricted_conference_id,
-                organizer_id=restricted_conference_organizer_id
-            )
             connection.commit()
-
         except Exception:
             connection.rollback()
             raise
         finally:
             cursor.close()
             connection.close()
+
+        # Invite the second participant to the restricted conference
+        restricted_conference = next(
+            (
+                conference
+                for conference in cls.default_conferences()
+                if conference["registration_type"] == "restricted"
+            ),
+            None,
+        )
+        if restricted_conference is not None:
+            invite_participant(
+                participant_id=cls.PARTICIPANT_ID_2,
+                conference_id=restricted_conference["conference_id"],
+                organizer_id=restricted_conference["organizer_id"],
+            )
