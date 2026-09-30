@@ -1,14 +1,43 @@
 <nav>
-    <a href="{{ url_for('get_index') }}">Home</a>
-    <a href="{{ url_for('conferences_page') }}">View conferences</a>
+    <a class="button" href="{{ url_for('get_index') }}">Home</a>
+    <a class="button" href="{{ url_for('conferences_page') }}">View conferences</a>
+    {% if current_user and (current_user.is_organizer or current_user.is_admin or current_user.is_participant) %}
+        <a class="button" href="{{ url_for('my_conferences_page') }}">My conferences</a>
+    {% endif %}
     {% if can_manage_conferences %}
-        <a href="{{ url_for('create_conference_page') }}">Create conference</a>
+        <a class="button" href="{{ url_for('create_conference_page') }}">Create conference</a>
     {% endif %}
     {% if current_user %}
         <span>Signed in as {{ current_user.user_id }}</span>
-        <a href="{{ url_for('logout') }}">Log out</a>
+        <a class="button secondary" href="{{ url_for('logout') }}">Log out</a>
     {% else %}
-        <a href="{{ url_for('login') }}">Log in</a>
+        <a class="button" href="{{ url_for('login') }}">Log in</a>
     {% endif %}
 </nav>
+<style>
+    nav {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: .6rem;
+        margin-bottom: 1rem;
+    }
+    .button {
+        background: #2457a6;
+        border-radius: 4px;
+        color: white;
+        display: inline-block;
+        padding: .5rem .8rem;
+        text-decoration: none;
+    }
+    .button:hover {
+        background: #173d78;
+    }
+    .button.secondary {
+        background: #5f6b7a;
+    }
+    nav span {
+        margin-left: auto;
+    }
+</style>
 <hr>

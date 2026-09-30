@@ -6,11 +6,34 @@
 <head>
     <meta charset="UTF-8">
     <title>Conference Registration System</title>
+    <style>
+        .actions {
+            display: flex;
+            gap: .75rem;
+            margin-top: 1.5rem;
+        }
+        .button {
+            background: #2457a6;
+            border-radius: 4px;
+            color: white;
+            display: inline-block;
+            padding: .6rem 1rem;
+            text-decoration: none;
+        }
+        .button:hover {
+            background: #173d78;
+        }
+        .button.secondary {
+            background: #5f6b7a;
+        }
+    </style>
 </head>
 <body>
     <h1>Conference Registration System</h1>
     <p>Browse conferences and manage conference registration.</p>
-    <a href="{{ url_for('login') }}">Log in</a>
-    <a href="{{ url_for('add_user_page') }}">Create new user</a>
+    <div class="actions">
+        <a class="button" href="{{ url_for('login') }}">Log in</a>
+        <a class="button secondary" href="{{ url_for('add_user_page') }}">Create new user</a>
+    </div>
 </body>
 </html>
