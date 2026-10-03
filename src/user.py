@@ -76,4 +76,7 @@ def delete_user_by_id(user_id):
     cursor.close()
     connection.close()
 
-
+def cancel_registration(user_id):
+    # Sprint 2: Cancel Registration - calls delete_user_by_id
+    # Table: user (from db.py USER_TABLE)
+    return delete_user_by_id(user_id)
