@@ -235,6 +235,7 @@ def conference_page(conference_id):
         conference=conference,
         is_owner=conference.organizer_id == session.get('user_id'),
     )
+
 @app.route('/delete_user/<user_id>', methods=['POST'])
 def delete_user(user_id):
     try:
@@ -301,7 +302,6 @@ def unregister_participant_route(conference_id):
         app.logger.exception("Unable to unregister participant")
         return 'Unregistration failed. Please try again.', 500
     return redirect(url_for('my_conferences_page'))
-
 
 if __name__ == '__main__':
     """Entry point for the application."""
