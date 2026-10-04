@@ -123,7 +123,7 @@ class DBSeeder:
         Inserts the default conferences.
         @param cursor: active database cursor
         """
-        conference_sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
+        conference_sql = f"""INSERT IGNORE INTO `{CONFERENCE_TABLE}`
             (conference_id, organizer_id, name, description, event_datetime, location,
              registration_type, is_published, published_at)
             VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP)"""
