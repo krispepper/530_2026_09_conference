@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ title|default('Published Conferences') }}</title>
+</head>
+<body>
+    {% include '_navigation.html' %}
+    <h1>{{ title|default('Published Conferences') }}</h1>
+    {% for conference in conferences %}
+        <article>
+            <h2>{{ conference.name }}</h2>
+            <p>{{ conference.event_datetime }} &mdash; {{ conference.location }}</p>
+            <p>{{ conference.registration_type|capitalize }} registration</p>
+            {% if show_status|default(false) %}
+                <p><strong>Status:</strong> {{ conference.membership_status }}</p>
+                <p>{{ 'Published' if conference.is_published else 'Draft' }}</p>
+            {% endif %}
+            <a class="button" href="{{ url_for('conference_page', conference_id=conference.conference_id) }}">
+                View conference
+            </a>
+        </article>
+    {% else %}
+        <p>
+            {% if title|default('') == 'My Conferences' %}
+                No conferences to show.
+            {% else %}
+                No conferences have been published.
+            {% endif %}
+        </p>
+    {% endfor %}
+</body>
+</html>

@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>{{ conference.name }}</title>
+</head>
+<body>
+    {% include '_navigation.html' %}
+    <h1>{{ conference.name }}</h1>
+    <p>{{ conference.description }}</p>
+    <p><strong>Date and time:</strong> {{ conference.event_datetime }}</p>
+    <p><strong>Location:</strong> {{ conference.location }}</p>
+    <p><strong>Registration:</strong> {{ conference.registration_type|capitalize }}</p>
+    {% if conference.is_published %}
+        {% if is_owner and conference.registration_type == 'restricted' %}
+            <h2>Invite a participant</h2>
+            <form method="post" action="{{ url_for('invite_participant_route', conference_id=conference.conference_id) }}">
+                <label for="participant_id">Participant ID</label>
+                <input type="text" name="participant_id" id="participant_id" required>
+                <button type="submit">Send invitation</button>
+            </form>
+        {% elif current_user and current_user.is_participant and conference.membership_status == 'registered' %}
+            <form method="post" action="{{ url_for('unregister_participant_route', conference_id=conference.conference_id) }}">
+                <button type="submit">Unregister</button>
+            </form>
+        {% elif current_user and current_user.is_participant %}
+            <form method="post" action="{{ url_for('register_participant_route', conference_id=conference.conference_id) }}">
+                <button type="submit">Register</button>
+            </form>
+        {% else %}
+            <p>Registration is available for participants. As an organizer, you are unable to register.</p>
+        {% endif %}
+    {% elif is_owner %}
+        <p>This conference is a draft and is not visible to participants.</p>
+        <form method="post" action="{{ url_for('publish_conference_route', conference_id=conference.conference_id) }}">
+            <button type="submit">Publish conference</button>
+        </form>
+    {% endif %}
+</body>
+</html>
