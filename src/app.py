@@ -244,6 +244,15 @@ def delete_user(user_id):
     except Exception as e:
         return f"Error deleting user: {e}"
 
+@app.route('/cancel_registration/<user_id>', methods=['POST'])
+def cancel_registration_route(user_id):
+    try:
+        cancel_registration(user_id)
+        return "Registration cancelled successfully"
+    except Exception as e:
+        return str(e), 500
+
+
 #TODO: Add a route for inviting participants to a open conference case?
 # This should only be accessible to organizers and admins!
 @app.route('/conferences/<conference_id>/invite', methods=['POST'])
