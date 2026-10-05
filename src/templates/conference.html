@@ -11,6 +11,13 @@
     <p><strong>Date and time:</strong> {{ conference.event_datetime }}</p>
     <p><strong>Location:</strong> {{ conference.location }}</p>
     <p><strong>Registration:</strong> {{ conference.registration_type|capitalize }}</p>
+    {% if current_user and (current_user.is_organizer or current_user.is_admin) %}
+        <p>
+            <a class="button" href="{{ url_for('export_participants_route', conference_id=conference.conference_id) }}">
+                Download participant CSV
+            </a>
+        </p>
+    {% endif %}
     {% if conference.is_published %}
         {% if is_owner and conference.registration_type == 'restricted' %}
             <h2>Invite a participant</h2>
