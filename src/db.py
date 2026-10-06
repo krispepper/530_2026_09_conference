@@ -28,6 +28,7 @@ DATABASE = DB_PROD if IS_PROD else DB_DEV
 
 USER_TABLE = "user"
 CONFERENCE_TABLE = "conference"
+CONFERENCE_AUDIT_TABLE = "conf_audit"
 PARTICIPANT_CONFERENCE_TABLE = "participant_conf"
 
 
@@ -117,6 +118,27 @@ def create_conference_table_sql():
         (`is_published`, `event_datetime`)
     );"""
 
+def create_conference_audit_table_sql():
+    """
+    Builds the SQL statement for creating the audit log table.
+    @return: SQL query string
+    """
+    return f"""CREATE TABLE IF NOT EXISTS `{CONFERENCE_AUDIT_TABLE}` (
+    `conference_id` VARCHAR(36) NOT NULL,
+    `timestamp` DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    `user_id` VARCHAR(10) NOT NULL,
+    `invitee` VARCHAR(10) DEFAULT NULL, 
+    `action` VARCHAR(10) NOT NULL,
+    PRIMARY KEY (`conference_id`, `timestamp`, `user_id`),
+    CONSTRAINT `fk_conf_audit_user`
+        FOREIGN KEY (`user_id`) REFERENCES `{USER_TABLE}` (`user_id`),
+    CONSTRAINT `fk_conf_audit_user_invitee`
+        FOREIGN KEY (`invitee`) REFERENCES `{USER_TABLE}` (`user_id`),
+    CONSTRAINT `fk_conf_audit_conference`
+        FOREIGN KEY (`conference_id`) REFERENCES `{CONFERENCE_TABLE}` (`conference_id`),
+    INDEX `idx_conf_audit_datetime`
+        (`timestamp`)
+    );"""
 
 def create_participant_conference_table_sql():
     """
@@ -148,6 +170,7 @@ def create_tables():
     try:
         cursor.execute(create_user_table_sql())
         cursor.execute(create_conference_table_sql())
+        cursor.execute(create_conference_audit_table_sql())
         cursor.execute(create_participant_conference_table_sql())
         connection.commit()
     except Exception:

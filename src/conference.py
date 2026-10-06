@@ -3,6 +3,7 @@ from uuid import uuid4
 
 from db import CONFERENCE_TABLE, PARTICIPANT_CONFERENCE_TABLE, get_connection
 from participant_conf import ParticipantConferenceStatus
+from audit_log import log_conference_action
 
 VALID_REGISTRATION_TYPES = {"open", "restricted"}
 
@@ -60,6 +61,7 @@ def create_conference(
             location, registration_type,
         ))
         connection.commit()
+        log_conference_action(conference_id, organizer_id, "CREATE")
         return conference_id
     except Exception:
         connection.rollback()
