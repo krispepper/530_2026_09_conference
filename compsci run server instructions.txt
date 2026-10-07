@@ -1,0 +1,38 @@
+Step by step instructions to run the project on compsci server.
+
+before trying to run the project -> setup .env file.
+FLASK_SECRET_KEY_DEV and FLASK_SECRET_KEY_PROD are required by Flask (use the same values).
+Try to leave DB_PASSWORD blank and see if the db connection works.
+You need to update .env file in UAT folder located at "cd /home/groupprojects/fall2026_530_conf/530_2026_09_conference" to access the DB.
+You can update the file using "nano .env" and control s to save, control x to exit.
+
+=======================================================================================
+Example .env file
+#COMPSCI ENV
+PORT=5001
+
+DB_USER=yourUser
+DB_PASSWORD=
+DB_PORT=3306
+DB_HOST=localhost
+DB_NAME_DEV=edwardhunter
+DB_NAME_PROD=fall2026_530_conf
+IS_PROD=false
+
+FLASK_SECRET_KEY_DEV=833e0d68e000b734d81a57c85211374b089e0e535dce6da11c1393b00746ff45
+FLASK_SECRET_KEY_PROD=d221970435884369468de821d3005c07c0ab25ce1c91dd42d6b27f90477f41b5
+
+DB_RESET_ON_STARTUP=true
+=======================================================================================
+
+Terminal 1:
+1. enter compsci server remotely -> ssh yourEmail@compsci.adelphi.edu
+2. enter project location in UAT folder -> cd /home/groupprojects/fall2026_530_conf/530_2026_09_conference
+3. bonus step: you can check if you are in the right folder by typing -> ls
+4. Run program with Neds script -> ./run.sh
+Now the project is running (if you see something like running on http://127.0.0.1:5001 it means you did it! (port can be configured). To access the project you need to open another terminal to connect compsci server with your comp
+
+Terminal 2.
+1. Connect to compsci server with your computer: ssh -L 5001:localhost:5001 yourEmail@compsci.adelphi.edu
+2. Your port should be the same as the one you put in PORT field in .env file in UAT folder. You can check which one is correct once you run the server in Terminal 1 and you see "running on http://127.0.0.1:PORT”.
+3. Now you can open http://127.0.0.1:PORT on your computer and see the servers website UI.
