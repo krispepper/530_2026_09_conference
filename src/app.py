@@ -1,4 +1,7 @@
-from flask import Flask, redirect, render_template, request, session, url_for
+import csv
+import io
+
+from flask import Flask, Response, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 from werkzeug.routing import BuildError
 
@@ -6,6 +9,7 @@ from db import reset_tables, RESET_ON_STARTUP, create_databases, create_tables
 from conference import (
     create_conference,
     get_conference_by_id,
+    get_conference_for_admin,
     get_conference_for_organizer,
     get_my_conferences,
     get_published_conferences,
@@ -15,6 +19,7 @@ from conference import (
 from db_seeder import DBSeeder
 from participant_conf import (
     get_participant_conference_status,
+    get_conference_participants,
     invite_participant,
     register_participant,
     unregister_participant,
@@ -221,9 +226,13 @@ def conference_page(conference_id):
         conference_id, session.get('user_id')
     )
     if conference is None and session.get('user_id'):
-        conference = get_conference_for_organizer(
-            conference_id, session['user_id']
-        )
+        user = get_user_by_id(session['user_id'])
+        if user and user.is_admin:
+            conference = get_conference_for_admin(conference_id)
+        else:
+            conference = get_conference_for_organizer(
+                conference_id, session['user_id']
+            )
     if conference is None:
         return 'Conference not found.', 404
     if session.get('user_id'):
@@ -235,6 +244,50 @@ def conference_page(conference_id):
         conference=conference,
         is_owner=conference.organizer_id == session.get('user_id'),
     )
+
+
+@app.route('/conferences/<conference_id>/participants.csv', methods=['GET'])
+def export_participants_route(conference_id):
+    """Download participant data for a conference as a CSV file."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+
+    user = get_user_by_id(user_id)
+    if not user or not (user.is_organizer or user.is_admin):
+        return 'Organizer privileges required.', 403
+
+    conference = (
+        get_conference_for_admin(conference_id)
+        if user.is_admin
+        else get_conference_for_organizer(conference_id, user_id)
+    )
+    if conference is None:
+        return 'Conference not found.', 404
+
+    output = io.StringIO(newline='')
+    writer = csv.writer(output)
+    writer.writerow([
+        'participant_id',
+        'first_name',
+        'last_name',
+        'email',
+        'status',
+        'invited_at',
+        'registered_at',
+    ])
+    writer.writerows(get_conference_participants(conference_id))
+
+    filename = f"participants-{conference.conference_id}.csv"
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Cache-Control': 'no-store',
+        },
+    )
+
 
 @app.route('/delete_user/<user_id>', methods=['POST'])
 def delete_user(user_id):

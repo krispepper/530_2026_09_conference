@@ -130,6 +130,26 @@ def get_conference_for_organizer(conference_id, organizer_id):
     return ConferenceModel(*conference_data) if conference_data else None
 
 
+def get_conference_for_admin(conference_id):
+    """
+    Gets a conference by ID for an administrator, including unpublished drafts.
+    """
+    connection = get_connection()
+    cursor = connection.cursor()
+    sql = f"""SELECT conference_id, organizer_id, name, description,
+        event_datetime, location, registration_type, is_published,
+        created_at, published_at
+        FROM `{CONFERENCE_TABLE}`
+        WHERE conference_id = %s"""
+    try:
+        cursor.execute(sql, (conference_id,))
+        conference_data = cursor.fetchone()
+    finally:
+        cursor.close()
+        connection.close()
+    return ConferenceModel(*conference_data) if conference_data else None
+
+
 def publish_conference(conference_id, organizer_id):
     """
     Publishes an unpublished conference owned by the organizer.
