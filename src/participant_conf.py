@@ -9,6 +9,8 @@ from db import (
     get_connection,
 )
 
+from audit_log import log_conference_action, log_conference_invite
+
 
 class ParticipantConferenceStatus(str, Enum):
     """Defines the allowed participant-conference relationship statuses."""
@@ -128,6 +130,7 @@ def invite_participant(participant_id, conference_id, organizer_id):
                 ParticipantConferenceStatus.INVITED.value,
             ),
         )
+        log_conference_invite(conference_id, organizer_id, participant_id)
         connection.commit()
         return ParticipantConferenceModel(
             participant_id,
@@ -234,6 +237,7 @@ def register_participant(participant_id, conference_id):
                 ),
             )
         connection.commit()
+        log_conference_action(conference_id, participant_id, "REGISTER")
     except Exception:
         connection.rollback()
         raise
@@ -263,6 +267,7 @@ def unregister_participant(participant_id, conference_id):
         if cursor.rowcount != 1:
             raise ValueError("You are not registered for this conference.")
         connection.commit()
+        log_conference_action(conference_id, participant_id, "UNREGISTER")
     except Exception:
         connection.rollback()
         raise

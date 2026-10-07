@@ -34,6 +34,7 @@ from participant_conf import (
 from user import *
 import os
 from dotenv import load_dotenv, dotenv_values
+from audit_log import fetch_conference_log
 
 load_dotenv()
 
@@ -373,6 +374,22 @@ def unregister_participant_route(conference_id):
         app.logger.exception("Unable to unregister participant")
         return 'Unregistration failed. Please try again.', 500
     return redirect(url_for('my_conferences_page'))
+
+@app.route('/conference_audit', methods=['GET'])
+def view_audit_log():
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+    
+    if not (is_user_organizer(user_id) or is_user_admin(user_id)):
+        return 'Access denied', 403
+
+    log = fetch_conference_log(request.args.get("conference"), request.args.get("user"), request.args.get("action"))
+
+    return render_template(
+        'audit_log.html',
+        log=log,
+    )
 
 if __name__ == '__main__':
     """Entry point for the application."""

@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Audit Log</title>
+</head>
+<body>
+    {% include '_navigation.html' %}
+    <h1>Conference Actions</h1>
+    <table border="1">
+        <tr>
+            <th>Conference ID</th>
+            <th>Timestamp</th>
+            <th>Actor ID</th>
+            <th>Action</th>
+            <th>Invitee</th>
+        </tr>
+        {% for action in log %}
+        <tr>
+            <td>{{ action.conference_id }}</td>
+            <td>{{ action.timestamp }}</td>
+            <td>{{ action.user_id }}</td>
+            <td>{{ action.action }}</td>
+            <td>{{ action.invitee }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
