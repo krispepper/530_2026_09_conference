@@ -1,3 +1,5 @@
+# Purpose: Create, retrieve, and validate conferences.
+# AI assistance: ChatGPT helped add capacity validation and storage.
 from datetime import datetime
 from uuid import uuid4
 
@@ -40,6 +42,7 @@ def create_conference(
     event_datetime,
     location,
     registration_type,
+    capacity,
 ):
     """
     Creates conference in the database.
@@ -51,13 +54,13 @@ def create_conference(
     # Insert the new conference into the database
     sql = f"""INSERT INTO `{CONFERENCE_TABLE}`
         (conference_id, organizer_id, name, description, event_datetime, location,
-         registration_type, is_published, published_at)
-        VALUES (%s, %s, %s, %s, %s, %s, %s, FALSE, NULL)"""
+         registration_type, capacity, is_published, published_at)
+        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, FALSE, NULL)"""
     try:
         conference_id = str(uuid4()) # UUID auto generated...
         cursor.execute(sql, (
             conference_id, organizer_id, name, description, event_datetime,
-            location, registration_type,
+            location, registration_type, capacity,
         ))
         connection.commit()
         return conference_id
@@ -250,8 +253,16 @@ def validate_conference_form(form):
         "event_datetime": form.get("event_datetime", "").strip(),
         "location": form.get("location", "").strip(),
         "registration_type": form.get("registration_type", "").strip(),
+        "capacity": form.get("capacity", "").strip(),
     }
     errors = {}
+    try:
+        capacity = int(values["capacity"])
+        if capacity <= 0:
+            raise ValueError
+        values["capacity"] = capacity
+    except (ValueError, TypeError):
+        errors["capacity"] = "Enter a positive whole number of seats."
     for field in ("name", "description", "event_datetime", "location"):
         if not values[field]:
             errors[field] = "This field is required."
@@ -265,3 +276,46 @@ def validate_conference_form(form):
     if values["registration_type"] not in VALID_REGISTRATION_TYPES:
         errors["registration_type"] = "Choose open or restricted registration."
     return values, errors
+
+
+def attach_seat_availability(conferences):
+    """Add capacity and remaining seats to the supplied conference models."""
+    from seats import calculate_remaining_seats
+
+    if not conferences:
+        return conferences
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    placeholders = ", ".join(["%s"] * len(conferences))
+    conference_ids = tuple(item.conference_id for item in conferences)
+
+    sql = f"""
+        SELECT c.conference_id, c.capacity, COUNT(pc.participant_id)
+        FROM `{CONFERENCE_TABLE}` c
+        LEFT JOIN `{PARTICIPANT_CONFERENCE_TABLE}` pc
+            ON pc.conference_id = c.conference_id
+            AND pc.status = 'registered'
+        WHERE c.conference_id IN ({placeholders})
+        GROUP BY c.conference_id, c.capacity
+    """
+    try:
+        cursor.execute(sql, conference_ids)
+        availability = {
+            row[0]: (row[1], row[2]) for row in cursor.fetchall()
+        }
+    finally:
+        cursor.close()
+        connection.close()
+
+    for conference in conferences:
+        capacity, registered_count = availability.get(
+            conference.conference_id, (None, 0)
+        )
+        conference.capacity = capacity
+        conference.remaining_seats = (
+            calculate_remaining_seats(capacity, registered_count)
+            if capacity is not None else None
+        )
+
+    return conferences

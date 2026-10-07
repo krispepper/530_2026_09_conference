@@ -1,9 +1,12 @@
+# Purpose: Handle website routes and user sessions.
+# AI assistance: ChatGPT helped connect conference seat counts.
 from flask import Flask, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 from werkzeug.routing import BuildError
 
 from db import reset_tables, RESET_ON_STARTUP, create_databases, create_tables
 from conference import (
+    attach_seat_availability,
     create_conference,
     get_conference_by_id,
     get_conference_for_organizer,
@@ -133,7 +136,7 @@ def conferences_page():
     """Render the list of published open conferences."""
     return render_template(
         'conferences.html',
-        conferences=get_published_conferences(),
+        conferences=attach_seat_availability(get_published_conferences()),
     )
 
 
@@ -150,7 +153,9 @@ def my_conferences_page():
     return render_template(
         'conferences.html',
         title='My Conferences',
-        conferences=get_my_conferences(user_id, is_conference_owner),
+        conferences=attach_seat_availability(
+            get_my_conferences(user_id, is_conference_owner)
+        ),
         show_status=True,
     )
 
@@ -226,6 +231,7 @@ def conference_page(conference_id):
         )
     if conference is None:
         return 'Conference not found.', 404
+    attach_seat_availability([conference])
     if session.get('user_id'):
         conference.membership_status = get_participant_conference_status(
             session['user_id'], conference_id
