@@ -1,3 +1,5 @@
+<!-- Purpose: Display conference details and seat availability.
+AI assistance: ChatGPT helped display seats and registration availability. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,6 +13,17 @@
     <p><strong>Date and time:</strong> {{ conference.event_datetime }}</p>
     <p><strong>Location:</strong> {{ conference.location }}</p>
     <p><strong>Registration:</strong> {{ conference.registration_type|capitalize }}</p>
+
+{% if conference.remaining_seats is none %}
+    <p>Seat capacity has not been set. Registration is unavailable.</p>
+{% else %}
+    <p><strong>Available seats:</strong> {{ conference.remaining_seats }}
+       of {{ conference.capacity }}</p>
+    {% if conference.remaining_seats == 0 %}
+        <p><strong>Full</strong></p>
+    {% endif %}
+{% endif %}
+
     {% if current_user and (current_user.is_organizer or current_user.is_admin) %}
         <p>
             <a class="button" href="{{ url_for('export_participants_route', conference_id=conference.conference_id) }}">
@@ -18,6 +31,7 @@
             </a>
         </p>
     {% endif %}
+
     {% if conference.is_published %}
         {% if is_owner and conference.registration_type == 'restricted' %}
             <h2>Invite a participant</h2>
@@ -30,6 +44,10 @@
             <form method="post" action="{{ url_for('unregister_participant_route', conference_id=conference.conference_id) }}">
                 <button type="submit">Unregister</button>
             </form>
+        {% elif current_user and current_user.is_participant
+                and (conference.remaining_seats is none
+                     or conference.remaining_seats == 0) %}
+            <p>Registration is unavailable.</p>
         {% elif current_user and current_user.is_participant %}
             <form method="post" action="{{ url_for('register_participant_route', conference_id=conference.conference_id) }}">
                 <button type="submit">Register</button>
