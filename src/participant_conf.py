@@ -55,6 +55,28 @@ def get_participant_conference_status(participant_id, conference_id):
     return ParticipantConferenceStatus(status[0]).value if status else None
 
 
+def get_conference_participants(conference_id):
+    """
+    Gets participant data associated with a conference for CSV export.
+    """
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            f"""SELECT u.user_id, u.f_name, u.l_name, u.email,
+                       pc.status, pc.invited_at, pc.registered_at
+                FROM `{PARTICIPANT_CONFERENCE_TABLE}` pc
+                JOIN `{USER_TABLE}` u ON u.user_id = pc.participant_id
+                WHERE pc.conference_id = %s
+                ORDER BY u.l_name, u.f_name, u.user_id""",
+            (conference_id,),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        connection.close()
+
+
 #TODO: try to simplify the function...
 def invite_participant(participant_id, conference_id, organizer_id):
     """
