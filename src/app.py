@@ -389,6 +389,7 @@ def view_audit_log():
     return render_template(
         'audit_log.html',
         log=log,
+        no_results=(len(log)==0)
     )
 
 if __name__ == '__main__':

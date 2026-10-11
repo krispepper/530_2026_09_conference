@@ -7,6 +7,33 @@
 <body>
     {% include '_navigation.html' %}
     <h1>Conference Actions</h1>
+    <label for="confSearch">Conference ID: </label>
+    <input id="confSearch" name="confSearch" type="text"></input>
+    <label for="userSearch">User ID: </label>
+    <input id="userSearch" name="userSearch" type="text"></input>
+    <label for="actSearch">Action: </label>
+    <select id="actSearch" name="actSearch">
+        <option value="" selected>Any</option>
+        <option value="CREATE">CREATE</option>
+        <option value="INVITE">INVITE</option>
+        <option value="REGISTER">REGISTER</option>
+        <option value="UNREGISTER">REGISTER</option>
+    </select>
+    <button id="search" onclick="search()">Search</button>
+    <script>
+        function search(){
+            var conf = document.getElementById("confSearch").value;
+            var user = document.getElementById("userSearch").value;
+            var act = document.getElementById("actSearch").value;
+
+            var href = "/conference_audit" + (conf || user || act ? "?" : "") +
+                (conf ? "conference=%" + conf + "%" + (user || act ? "&" : "") : "") +
+                (user ? "user=" + user + (act ? "&" : "") : "") +
+                (act ? "action=" + act : "") 
+            
+            window.location.href = href;
+        }
+    </script>
     <table border="1">
         <tr>
             <th>Conference ID</th>
@@ -25,5 +52,8 @@
         </tr>
         {% endfor %}
     </table>
+    {% if no_results %}
+    <p>No log entries match your search.</p>
+    {% endif %}
 </body>
 </html>
