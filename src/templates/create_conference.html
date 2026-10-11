@@ -1,3 +1,5 @@
+<!-- Purpose: Let organizers create conference drafts.
+AI assistance: ChatGPT helped add the maximum seats field. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -28,6 +30,15 @@
             <label for="location">Location</label>
             <input type="text" name="location" id="location" value="{{ values.get('location', '') }}" required>
             {% if errors.location %}<p role="alert">{{ errors.location }}</p>{% endif %}
+        </div>
+        <div>
+            <label for="capacity">Maximum seats</label>
+            <input type="number" name="capacity" id="capacity"
+                   min="1" step="1"
+                   value="{{ values.get('capacity', '') }}" required>
+            {% if errors.capacity %}
+                <p role="alert">{{ errors.capacity }}</p>
+            {% endif %}
         </div>
         <fieldset>
             <legend>Registration type</legend>

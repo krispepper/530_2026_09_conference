@@ -1,3 +1,5 @@
+# Purpose: Manage invitations, registrations, and cancellations.
+# AI assistance: ChatGPT helped enforce conference seat capacity.
 from enum import Enum
 
 from db import (
@@ -53,6 +55,28 @@ def get_participant_conference_status(participant_id, conference_id):
         cursor.close()
         connection.close()
     return ParticipantConferenceStatus(status[0]).value if status else None
+
+
+def get_conference_participants(conference_id):
+    """
+    Gets participant data associated with a conference for CSV export.
+    """
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            f"""SELECT u.user_id, u.f_name, u.l_name, u.email,
+                       pc.status, pc.invited_at, pc.registered_at
+                FROM `{PARTICIPANT_CONFERENCE_TABLE}` pc
+                JOIN `{USER_TABLE}` u ON u.user_id = pc.participant_id
+                WHERE pc.conference_id = %s
+                ORDER BY u.l_name, u.f_name, u.user_id""",
+            (conference_id,),
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        connection.close()
 
 
 #TODO: try to simplify the function...
@@ -131,9 +155,9 @@ def register_participant(participant_id, conference_id):
     cursor = connection.cursor()
     try:
         cursor.execute(
-            f"""SELECT registration_type, is_published
+            f"""SELECT registration_type, is_published, capacity
                 FROM `{CONFERENCE_TABLE}`
-                WHERE conference_id = %s""",
+                WHERE conference_id = %s FOR UPDATE""",
             (conference_id,),
         )
         conference = cursor.fetchone()
@@ -148,7 +172,34 @@ def register_participant(participant_id, conference_id):
         if cursor.fetchone() is None:
             raise PermissionError("Only participants can register.")
 
-        registration_type, _ = conference
+        registration_type, _, capacity = conference
+
+        # Lock the conference first to serialize competing registrations.
+        cursor.execute(
+            f"""SELECT status FROM `{PARTICIPANT_CONFERENCE_TABLE}`
+                WHERE participant_id = %s AND conference_id = %s
+                FOR UPDATE""",
+            (participant_id, conference_id),
+        )
+        existing = cursor.fetchone()
+        if existing and existing[0] == ParticipantConferenceStatus.REGISTERED.value:
+            connection.commit()
+            return
+
+        if capacity is None:
+            raise ValueError("Seat capacity has not been set.")
+
+        # Count only active registrations using a current, locking read.
+        cursor.execute(
+            f"""SELECT participant_id FROM `{PARTICIPANT_CONFERENCE_TABLE}`
+                WHERE conference_id = %s AND status = %s
+                FOR UPDATE""",
+            (conference_id, ParticipantConferenceStatus.REGISTERED.value),
+        )
+        registered_count = len(cursor.fetchall())
+        if registered_count >= capacity:
+            raise ValueError("This conference is full.")
+
         if registration_type == "restricted":
             cursor.execute(
                 f"""UPDATE `{PARTICIPANT_CONFERENCE_TABLE}`

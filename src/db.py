@@ -1,3 +1,5 @@
+# Purpose: Configure database connections and application tables.
+# AI assistance: ChatGPT helped add conference capacity support.
 import os
 
 import mysql.connector
@@ -108,6 +110,7 @@ def create_conference_table_sql():
     `event_datetime` DATETIME NOT NULL,
     `location` VARCHAR(200) NOT NULL,
     `registration_type` ENUM('open', 'restricted') NOT NULL,
+    `capacity` INT UNSIGNED NULL,
     `is_published` BOOL NOT NULL DEFAULT FALSE,
     `created_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `published_at` TIMESTAMP NULL DEFAULT NULL,
@@ -171,6 +174,16 @@ def create_tables():
         cursor.execute(create_user_table_sql())
         cursor.execute(create_conference_table_sql())
         cursor.execute(create_conference_audit_table_sql())
+
+        # Add capacity to existing tables without removing conference data.
+        cursor.execute(
+            f"SHOW COLUMNS FROM `{CONFERENCE_TABLE}` LIKE 'capacity'"
+        )
+        if cursor.fetchone() is None:
+            cursor.execute(
+                f"ALTER TABLE `{CONFERENCE_TABLE}` "
+                "ADD COLUMN `capacity` INT UNSIGNED NULL"
+            )
         cursor.execute(create_participant_conference_table_sql())
         connection.commit()
     except Exception:
