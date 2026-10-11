@@ -51,9 +51,9 @@ def fetch_conference_log(conference_id = None, user_id = None, action = None):
 
     sql = f"""SELECT a.conference_id, a.timestamp, a.user_id, a.action, a.invitee
     FROM {CONFERENCE_AUDIT_TABLE} a 
-    {"WHERE u.conference_id = %s" if conference_id is not None else ""}
-    {"WHERE u.user_id = %s" if user_id is not None else ""}
-    {"WHERE u.action = %s" if action is not None else ""}
+    {"WHERE a.conference_id LIKE %s ESCAPE ''" if conference_id is not None else ""}
+    {"WHERE a.user_id LIKE %s ESCAPE ''" if user_id is not None else ""}
+    {"WHERE a.action LIKE %s ESCAPE ''" if action is not None else ""}
     ORDER BY a.timestamp DESC
     ;"""
 
