@@ -82,11 +82,57 @@ def delete_user_by_id(user_id):
     connection.close()
 
 
-def cancel_registration(user_id):
-    # Sprint 2: Cancel Registration - calls delete_user_by_id
-    # Table: user (from db.py USER_TABLE)
-    return delete_user_by_id(user_id)
+def cancel_registration(user_id, conference_id):
+    from datetime import datetime
+    connection = get_connection()
+    cursor = connection.cursor()
 
+    # 1. Check if still registered - fails because they are no longer registered
+    sql_check = f"""
+    SELECT * FROM participant_conf
+    WHERE user_id = %s AND conference_id = %s;
+    """
+    cursor.execute(sql_check, (user_id, conference_id))
+    reg = cursor.fetchone()
+
+    if not reg:
+        cursor.close()
+        connection.close()
+        raise Exception("You are no longer registered for this conference")
+
+    # 2. Past event & deadline handling
+    sql_conf = f"""
+    SELECT start_date, cancellation_deadline FROM conference
+    WHERE conference_id = %s;
+    """
+    try:
+        cursor.execute(sql_conf, (conference_id,))
+        conf = cursor.fetchone()
+        if conf:
+            start_date, deadline = conf[0], conf[1]
+            now = datetime.now()
+            if start_date and start_date < now:
+                cursor.close()
+                connection.close()
+                raise Exception("Cannot cancel - conference has already started")
+            if deadline and deadline < now:
+                cursor.close()
+                connection.close()
+                raise Exception("Cancellation deadline has passed")
+    except Exception as e:
+        if "no longer registered" in str(e) or "started" in str(e) or "deadline" in str(e):
+            raise e
+
+    # 3. Cancel registration only, don't delete user
+    sql_delete = f"""
+    DELETE FROM participant_conf
+    WHERE user_id = %s AND conference_id = %s;
+    """
+    cursor.execute(sql_delete, (user_id, conference_id))
+    connection.commit()
+    cursor.close()
+    connection.close()
+    return True
 def delete_user_by_id(user_id):
     connection = get_connection()
     cursor = connection.cursor()
