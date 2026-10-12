@@ -1,3 +1,5 @@
+<!-- Purpose: Display conference details and seat availability.
+AI assistance: ChatGPT helped display seats and registration availability. -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -12,6 +14,15 @@
             <h2>{{ conference.name }}</h2>
             <p>{{ conference.event_datetime }} &mdash; {{ conference.location }}</p>
             <p>{{ conference.registration_type|capitalize }} registration</p>
+{% if conference.remaining_seats is none %}
+    <p>Seat capacity has not been set. Registration is unavailable.</p>
+{% else %}
+    <p><strong>Available seats:</strong> {{ conference.remaining_seats }}
+       of {{ conference.capacity }}</p>
+    {% if conference.remaining_seats == 0 %}
+        <p><strong>Full</strong></p>
+    {% endif %}
+{% endif %}
             {% if show_status|default(false) %}
                 <p><strong>Status:</strong> {{ conference.membership_status }}</p>
                 <p>{{ 'Published' if conference.is_published else 'Draft' }}</p>

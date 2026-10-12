@@ -1,0 +1,17 @@
+Sprint 2: View Remaining Seats
+Author: Priya Vaghela
+
+User story:
+As a participant, I want to see the number of available seats
+in each session so that I can select a session that still has space.
+
+Expected behavior:
+- Available seats equal maximum capacity minus active registrations.
+- Canceled registrations do not use seats.
+- Available seats never display a negative number.
+- A session with no available seats is marked "Full".
+- A full session does not show a registration link.
+
+Dependency:
+The team must confirm whether this story applies to conferences
+or requires new session and session-registration tables.

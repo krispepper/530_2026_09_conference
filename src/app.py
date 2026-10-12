@@ -1,11 +1,21 @@
-from flask import Flask, redirect, render_template, request, session, url_for
+
+# Purpose: Handle website routes and user sessions.
+# AI assistance: ChatGPT helped connect conference seat counts.
+# Author: Priya
+
+import csv
+import io
+
+from flask import Flask, Response, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 from werkzeug.routing import BuildError
 
 from db import reset_tables, RESET_ON_STARTUP, create_databases, create_tables
 from conference import (
+    attach_seat_availability,
     create_conference,
     get_conference_by_id,
+    get_conference_for_admin,
     get_conference_for_organizer,
     get_my_conferences,
     get_published_conferences,
@@ -15,6 +25,7 @@ from conference import (
 from db_seeder import DBSeeder
 from participant_conf import (
     get_participant_conference_status,
+    get_conference_participants,
     invite_participant,
     register_participant,
     unregister_participant,
@@ -23,6 +34,7 @@ from participant_conf import (
 from user import *
 import os
 from dotenv import load_dotenv, dotenv_values
+from audit_log import fetch_conference_log
 
 load_dotenv()
 
@@ -133,7 +145,7 @@ def conferences_page():
     """Render the list of published open conferences."""
     return render_template(
         'conferences.html',
-        conferences=get_published_conferences(),
+        conferences=attach_seat_availability(get_published_conferences()),
     )
 
 
@@ -150,7 +162,9 @@ def my_conferences_page():
     return render_template(
         'conferences.html',
         title='My Conferences',
-        conferences=get_my_conferences(user_id, is_conference_owner),
+        conferences=attach_seat_availability(
+            get_my_conferences(user_id, is_conference_owner)
+        ),
         show_status=True,
     )
 
@@ -221,11 +235,16 @@ def conference_page(conference_id):
         conference_id, session.get('user_id')
     )
     if conference is None and session.get('user_id'):
-        conference = get_conference_for_organizer(
-            conference_id, session['user_id']
-        )
+        user = get_user_by_id(session['user_id'])
+        if user and user.is_admin:
+            conference = get_conference_for_admin(conference_id)
+        else:
+            conference = get_conference_for_organizer(
+                conference_id, session['user_id']
+            )
     if conference is None:
         return 'Conference not found.', 404
+    attach_seat_availability([conference])
     if session.get('user_id'):
         conference.membership_status = get_participant_conference_status(
             session['user_id'], conference_id
@@ -236,6 +255,50 @@ def conference_page(conference_id):
         is_owner=conference.organizer_id == session.get('user_id'),
     )
 
+
+@app.route('/conferences/<conference_id>/participants.csv', methods=['GET'])
+def export_participants_route(conference_id):
+    """Download participant data for a conference as a CSV file."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+
+    user = get_user_by_id(user_id)
+    if not user or not (user.is_organizer or user.is_admin):
+        return 'Organizer privileges required.', 403
+
+    conference = (
+        get_conference_for_admin(conference_id)
+        if user.is_admin
+        else get_conference_for_organizer(conference_id, user_id)
+    )
+    if conference is None:
+        return 'Conference not found.', 404
+
+    output = io.StringIO(newline='')
+    writer = csv.writer(output)
+    writer.writerow([
+        'participant_id',
+        'first_name',
+        'last_name',
+        'email',
+        'status',
+        'invited_at',
+        'registered_at',
+    ])
+    writer.writerows(get_conference_participants(conference_id))
+
+    filename = f"participants-{conference.conference_id}.csv"
+    return Response(
+        output.getvalue(),
+        mimetype='text/csv',
+        headers={
+            'Content-Disposition': f'attachment; filename="{filename}"',
+            'Cache-Control': 'no-store',
+        },
+    )
+
+
 @app.route('/delete_user/<user_id>', methods=['POST'])
 def delete_user(user_id):
     try:
@@ -244,13 +307,14 @@ def delete_user(user_id):
     except Exception as e:
         return f"Error deleting user: {e}"
 
-@app.route('/cancel_registration/<user_id>', methods=['POST'])
-def cancel_registration_route(user_id):
+@app.route('/cancel_registration/<conference_id>/<user_id>', methods=['DELETE'])
+def cancel_reg_route(conference_id, user_id):
     try:
-        cancel_registration(user_id)
-        return "Registration cancelled successfully"
+        # check login user is owner or admin here if you have auth
+        cancel_registration(user_id, conference_id)
+        return jsonify({"message": "Registration cancelled"}), 200
     except Exception as e:
-        return str(e), 500
+        return jsonify({"error": str(e)}), 400
 
 
 #TODO: Add a route for inviting participants to a open conference case?
@@ -311,6 +375,23 @@ def unregister_participant_route(conference_id):
         app.logger.exception("Unable to unregister participant")
         return 'Unregistration failed. Please try again.', 500
     return redirect(url_for('my_conferences_page'))
+
+@app.route('/conference_audit', methods=['GET'])
+def view_audit_log():
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+    
+    if not (is_user_organizer(user_id) or is_user_admin(user_id)):
+        return 'Access denied', 403
+
+    log = fetch_conference_log(request.args.get("conference"), request.args.get("user"), request.args.get("action"))
+
+    return render_template(
+        'audit_log.html',
+        log=log,
+        no_results=(len(log)==0)
+    )
 
 if __name__ == '__main__':
     """Entry point for the application."""
