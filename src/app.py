@@ -1,4 +1,4 @@
-from flask import Flask, redirect, render_template, request, session, url_for
+9from flask import Flask, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError
 from werkzeug.routing import BuildError
 
@@ -244,13 +244,14 @@ def delete_user(user_id):
     except Exception as e:
         return f"Error deleting user: {e}"
 
-@app.route('/cancel_registration/<user_id>', methods=['POST'])
-def cancel_registration_route(user_id):
+@app.route('/cancel_registration/<conference_id>/<user_id>', methods=['DELETE'])
+def cancel_reg_route(conference_id, user_id):
     try:
-        cancel_registration(user_id)
-        return "Registration cancelled successfully"
+        # check login user is owner or admin here if you have auth
+        cancel_registration(user_id, conference_id)
+        return jsonify({"message": "Registration cancelled"}), 200
     except Exception as e:
-        return str(e), 500
+        return jsonify({"error": str(e)}), 400
 
 
 #TODO: Add a route for inviting participants to a open conference case?
