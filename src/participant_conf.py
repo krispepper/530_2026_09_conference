@@ -274,3 +274,100 @@ def unregister_participant(participant_id, conference_id):
     finally:
         cursor.close()
         connection.close()
+def remove_participant(participant_id, conference_id, organizer_id):
+    """
+    Organizer removes a participant from a conference.
+    @return: True if removed
+    """
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        # 1. Verify organizer owns this conference
+        cursor.execute(
+            f"""SELECT organizer_id FROM `{CONFERENCE_TABLE}`
+                WHERE conference_id = %s FOR UPDATE""",
+            (conference_id,),
+        )
+        conf = cursor.fetchone()
+        if conf is None or conf[0] != organizer_id:
+            raise PermissionError("Only the organizer can remove participants.")
+
+        # 2. Verify participant is in the conference
+        cursor.execute(
+            f"""SELECT participant_id FROM `{PARTICIPANT_CONFERENCE_TABLE}`
+                WHERE participant_id = %s AND conference_id = %s
+                FOR UPDATE""",
+            (participant_id, conference_id),
+        )
+        if cursor.fetchone() is None:
+            raise ValueError("Participant is not in this conference.")
+
+        # 3. Remove
+        cursor.execute(
+            f"""DELETE FROM `{PARTICIPANT_CONFERENCE_TABLE}`
+                WHERE participant_id = %s AND conference_id = %s""",
+            (participant_id, conference_id),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("Could not remove participant.")
+
+        connection.commit()
+        log_conference_action(conference_id, organizer_id, f"REMOVE participant {participant_id}")
+        return True
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        connection.close()
+
+def change_participant_role(participant_id, conference_id, organizer_id, new_status):
+    """
+    Organizer changes a participant's status/role.
+    new_status must be one of: invited, approved, registered
+    """
+    if new_status not in [s.value for s in ParticipantConferenceStatus]:
+        raise ValueError("Invalid status. Use invited, approved, or registered.")
+
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        # 1. Verify organizer owns this conference
+        cursor.execute(
+            f"""SELECT organizer_id FROM `{CONFERENCE_TABLE}`
+                WHERE conference_id = %s FOR UPDATE""",
+            (conference_id,),
+        )
+        conf = cursor.fetchone()
+        if conf is None or conf[0] != organizer_id:
+            raise PermissionError("Only the organizer can change participant role.")
+
+        # 2. Verify participant exists in conference
+        cursor.execute(
+            f"""SELECT participant_id FROM `{PARTICIPANT_CONFERENCE_TABLE}`
+                WHERE participant_id = %s AND conference_id = %s
+                FOR UPDATE""",
+            (participant_id, conference_id),
+        )
+        if cursor.fetchone() is None:
+            raise ValueError("Participant is not in this conference.")
+
+        # 3. Update role/status
+        cursor.execute(
+            f"""UPDATE `{PARTICIPANT_CONFERENCE_TABLE}`
+                SET status = %s
+                WHERE participant_id = %s AND conference_id = %s""",
+            (new_status, participant_id, conference_id),
+        )
+        if cursor.rowcount != 1:
+            raise ValueError("Could not update participant role.")
+
+        connection.commit()
+        log_conference_action(conference_id, organizer_id, f"CHANGE ROLE participant {participant_id} to {new_status}")
+        return True
+    except Exception:
+        connection.rollback()
+        raise
+    finally:
+        cursor.close()
+        connection.close()
