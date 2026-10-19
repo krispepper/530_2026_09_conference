@@ -1,0 +1,27 @@
+<!-- Purpose: Show the signed-in participant's past events.
+Author: Priya Vaghela.
+AI assistance: ChatGPT helped draft this template. -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Past events</title>
+</head>
+<body>
+    {% include '_navigation.html' %}
+    <h1>Past events</h1>
+    <p>Attendance is based on being registered at the time of the event.</p>
+
+    {% for event in events %}
+        <article>
+            <h2>{{ event.name }}</h2>
+            <p><strong>Date and time:</strong> {{ event.event_datetime }}</p>
+            <p><strong>Location:</strong> {{ event.location }}</p>
+        </article>
+    {% else %}
+        <p>You have not attended any past events.</p>
+    {% endfor %}
+
+    <a href="{{ url_for('my_conferences_page') }}">Back to my conferences</a>
+</body>
+</html>

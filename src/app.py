@@ -1,3 +1,5 @@
+# AI assistance: ChatGPT helped add the past events route.
+from past_attendance import get_past_events
 
 # Purpose: Handle website routes and user sessions.
 # AI assistance: ChatGPT helped connect conference seat counts.
@@ -166,6 +168,23 @@ def my_conferences_page():
             get_my_conferences(user_id, is_conference_owner)
         ),
         show_status=True,
+    )
+
+
+@app.route('/my-conferences/past', methods=['GET'])
+def past_events_page():
+    """Show past events only for the signed-in participant."""
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+
+    user = get_user_by_id(user_id)
+    if not user or not user.is_participant:
+        return 'Participant privileges required.', 403
+
+    return render_template(
+        'past_events.html',
+        events=get_past_events(user_id),
     )
 
 
