@@ -3,7 +3,9 @@
 <!--Source: https://www.w3schools.com/howto/howto_css_dropdown_navbar.asp-->
 <nav>
     <a class="button" href="{{ url_for('get_index') }}">Home</a>
-    <a class="button" href="{{ url_for('conferences_page') }}">View conferences</a>
+    {% if logged_in %}
+        <a class="button" href="{{ url_for('conferences_page') }}">View conferences</a>
+    {% endif %}
     {% if current_user and (current_user.is_organizer or current_user.is_admin or current_user.is_participant) %}
         <div class="dropdown">
             <button class="dropbtn">My Conferences
@@ -20,11 +22,9 @@
         <a class="button" href="{{ url_for('create_conference_page') }}">Create conference</a>
         <a class="button" href="{{ url_for('view_audit_log') }}">Audit</a>
     {% endif %}
-    {% if current_user %}
-        <span>Signed in as {{ current_user.user_id }}</span>
+    {% if logged_in %}
+        <span>Signed in{% if current_user %} as {{ current_user.user_id }}{% endif %}</span>
         <a class="button secondary" href="{{ url_for('logout') }}">Log out</a>
-    {% else %}
-        <a class="button" href="{{ url_for('login') }}">Log in</a>
     {% endif %}
 </nav>
 <style>

@@ -70,6 +70,7 @@ def navigation_context():
     current_user = get_user_by_id(user_id) if user_id else None
     return {
         'current_user': current_user,
+        'logged_in': bool(user_id),
         'can_manage_conferences': bool(
             current_user and (
                 current_user.is_organizer or current_user.is_admin
