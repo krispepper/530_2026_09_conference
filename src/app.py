@@ -149,7 +149,11 @@ def conferences_page():
     """Render the list of published open conferences."""
     user_id = session.get('user_id')
     user = get_user_by_id(user_id) if user_id else None
-    organizer_id = user.user_id if user and user.is_organizer else None
+    organizer_id = (
+        user.user_id
+        if user and (user.is_organizer or user.is_admin)
+        else None
+    )
     return render_template(
         'conferences.html',
         conferences=attach_seat_availability(
@@ -290,7 +294,7 @@ def export_participants_route(conference_id):
         return 'Login required.', 401
 
     user = get_user_by_id(user_id)
-    if not user or not user.is_organizer:
+    if not user or not (user.is_organizer or user.is_admin):
         return 'Organizer privileges required.', 403
 
     conference = get_conference_for_organizer(conference_id, user_id)
