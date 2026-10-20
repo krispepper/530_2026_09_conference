@@ -24,7 +24,7 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
     {% endif %}
 {% endif %}
 
-    {% if current_user and (current_user.is_organizer or current_user.is_admin) %}
+    {% if current_user and current_user.is_organizer and is_owner %}
         <p>
             <a class="button" href="{{ url_for('export_participants_route', conference_id=conference.conference_id) }}">
                 Download participant CSV

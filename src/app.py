@@ -147,9 +147,14 @@ def view_user_page(**kwargs):
 @app.route('/conferences', methods=['GET'])
 def conferences_page():
     """Render the list of published open conferences."""
+    user_id = session.get('user_id')
+    user = get_user_by_id(user_id) if user_id else None
+    organizer_id = user.user_id if user and user.is_organizer else None
     return render_template(
         'conferences.html',
-        conferences=attach_seat_availability(get_published_conferences()),
+        conferences=attach_seat_availability(
+            get_published_conferences(organizer_id)
+        ),
     )
 
 
@@ -285,14 +290,10 @@ def export_participants_route(conference_id):
         return 'Login required.', 401
 
     user = get_user_by_id(user_id)
-    if not user or not (user.is_organizer or user.is_admin):
+    if not user or not user.is_organizer:
         return 'Organizer privileges required.', 403
 
-    conference = (
-        get_conference_for_admin(conference_id)
-        if user.is_admin
-        else get_conference_for_organizer(conference_id, user_id)
-    )
+    conference = get_conference_for_organizer(conference_id, user_id)
     if conference is None:
         return 'Conference not found.', 404
 
