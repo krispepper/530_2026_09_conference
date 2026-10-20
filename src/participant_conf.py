@@ -1,3 +1,4 @@
+# AI assistance: ChatGPT helped protect past attendance records.
 # Purpose: Manage invitations, registrations, and cancellations.
 # AI assistance: ChatGPT helped enforce conference seat capacity.
 from enum import Enum
@@ -253,6 +254,21 @@ def unregister_participant(participant_id, conference_id):
     connection = get_connection()
     cursor = connection.cursor()
     try:
+        # Preserve attendance history once the conference has started.
+        cursor.execute(
+            f"""SELECT event_datetime > CURRENT_TIMESTAMP
+                FROM `{CONFERENCE_TABLE}`
+                WHERE conference_id = %s FOR UPDATE""",
+            (conference_id,),
+        )
+        conference = cursor.fetchone()
+        if conference is None:
+            raise ValueError("Conference was not found.")
+        if not conference[0]:
+            raise ValueError(
+                "Cannot cancel after the conference has started."
+            )
+
         cursor.execute(
             f"""DELETE FROM `{PARTICIPANT_CONFERENCE_TABLE}`
                 WHERE participant_id = %s
