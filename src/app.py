@@ -366,7 +366,7 @@ def invite_participant_route(conference_id):
 
 @app.route('/conferences/<conference_id>/register', methods=['POST'])
 def register_participant_route(conference_id):
-    """Register the signed-in participant for a conference."""
+    """Register the signed-in user for a conference."""
     participant_id = session.get('user_id')
     if not participant_id:
         return 'Login required.', 401

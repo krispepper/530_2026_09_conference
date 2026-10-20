@@ -167,12 +167,21 @@ def register_participant(participant_id, conference_id):
             raise ValueError("Conference was not found or is not published.")
 
         cursor.execute(
-            f"""SELECT user_id FROM `{USER_TABLE}`
-                WHERE user_id = %s AND is_participant = TRUE""",
-            (participant_id,),
+            f"""SELECT u.user_id
+                FROM `{USER_TABLE}` u
+                LEFT JOIN `{CONFERENCE_TABLE}` owned
+                    ON owned.organizer_id = u.user_id
+                   AND owned.conference_id = %s
+                WHERE u.user_id = %s
+                  AND (u.is_participant = TRUE
+                       OR u.is_organizer = TRUE
+                       OR u.is_admin = TRUE)
+                  AND NOT (u.is_organizer = TRUE
+                           AND owned.conference_id IS NOT NULL)""",
+            (conference_id, participant_id),
         )
         if cursor.fetchone() is None:
-            raise PermissionError("Only participants can register.")
+            raise PermissionError("You are not permitted to register for this conference.")
 
         registration_type, _, capacity = conference
 

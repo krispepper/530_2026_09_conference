@@ -72,6 +72,7 @@ class DBSeeder:
                 "event_datetime": datetime(2027, 4, 10, 9, 0),
                 "location": "University Conference Center",
                 "registration_type": "open",
+                "capacity": 100,
             },
             {
                 "conference_id": "c2",
@@ -81,6 +82,7 @@ class DBSeeder:
                 "event_datetime": datetime(2027, 5, 15, 10, 0),
                 "location": "Science Building Auditorium",
                 "registration_type": "open",
+                "capacity": 75,
             },
             {
                 "conference_id": "c3",
@@ -90,6 +92,7 @@ class DBSeeder:
                 "event_datetime": datetime(2027, 6, 5, 13, 0),
                 "location": "Graduate Studies Room",
                 "registration_type": "restricted",
+                "capacity": 25,
             },
         ]
 
@@ -125,8 +128,9 @@ class DBSeeder:
         """
         conference_sql = f"""INSERT IGNORE INTO `{CONFERENCE_TABLE}`
             (conference_id, organizer_id, name, description, event_datetime, location,
-             registration_type, is_published, published_at)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP)"""
+             registration_type, capacity, is_published, published_at)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, TRUE, CURRENT_TIMESTAMP)
+            ON DUPLICATE KEY UPDATE capacity = VALUES(capacity)"""
         for conference in cls.default_conferences():
             cursor.execute(
                 conference_sql,
@@ -138,6 +142,7 @@ class DBSeeder:
                     conference["event_datetime"],
                     conference["location"],
                     conference["registration_type"],
+                    conference["capacity"],
                 ),
             )
 
