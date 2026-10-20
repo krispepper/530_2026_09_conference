@@ -154,6 +154,7 @@ def create_participant_conference_table_sql():
     `status` ENUM('invited', 'approved', 'registered') NOT NULL DEFAULT 'invited',
     `invited_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     `registered_at` TIMESTAMP NULL DEFAULT NULL,
+    `registration_number` VARCHAR(36) NULL UNIQUE,
     PRIMARY KEY (`participant_id`, `conference_id`),
     CONSTRAINT `fk_participant_conf_participant`
         FOREIGN KEY (`participant_id`) REFERENCES `{USER_TABLE}` (`user_id`),
@@ -185,6 +186,20 @@ def create_tables():
                 "ADD COLUMN `capacity` INT UNSIGNED NULL"
             )
         cursor.execute(create_participant_conference_table_sql())
+        cursor.execute(
+            f"SHOW COLUMNS FROM `{PARTICIPANT_CONFERENCE_TABLE}` "
+            "LIKE 'registration_number'"
+        )
+        if cursor.fetchone() is None:
+            cursor.execute(
+                f"ALTER TABLE `{PARTICIPANT_CONFERENCE_TABLE}` "
+                "ADD COLUMN `registration_number` VARCHAR(36) NULL UNIQUE"
+            )
+            cursor.execute(
+                f"UPDATE `{PARTICIPANT_CONFERENCE_TABLE}` "
+                "SET registration_number = UUID() "
+                "WHERE registration_number IS NULL AND status = 'registered'"
+            )
         connection.commit()
     except Exception:
         connection.rollback()
@@ -205,6 +220,7 @@ def reset_tables():
         cursor.execute(
             f"DROP TABLE IF EXISTS `{PARTICIPANT_CONFERENCE_TABLE}`"
         )
+        cursor.execute(f"DROP TABLE IF EXISTS `{CONFERENCE_AUDIT_TABLE}`")
         cursor.execute(f"DROP TABLE IF EXISTS `{CONFERENCE_TABLE}`")
         cursor.execute(f"DROP TABLE IF EXISTS `{USER_TABLE}`")
         connection.commit()

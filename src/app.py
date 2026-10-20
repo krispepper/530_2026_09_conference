@@ -32,6 +32,7 @@ from participant_conf import (
     register_participant,
     unregister_participant,
     get_participant_upcoming_attendance,
+    get_registration_receipt,
 )
 
 from user import *
@@ -69,6 +70,7 @@ def navigation_context():
     current_user = get_user_by_id(user_id) if user_id else None
     return {
         'current_user': current_user,
+        'logged_in': bool(user_id),
         'can_manage_conferences': bool(
             current_user and (
                 current_user.is_organizer or current_user.is_admin
@@ -146,9 +148,18 @@ def view_user_page(**kwargs):
 @app.route('/conferences', methods=['GET'])
 def conferences_page():
     """Render the list of published open conferences."""
+    user_id = session.get('user_id')
+    user = get_user_by_id(user_id) if user_id else None
+    organizer_id = (
+        user.user_id
+        if user and (user.is_organizer or user.is_admin)
+        else None
+    )
     return render_template(
         'conferences.html',
-        conferences=attach_seat_availability(get_published_conferences()),
+        conferences=attach_seat_availability(
+            get_published_conferences(organizer_id)
+        ),
     )
 
 
@@ -287,11 +298,7 @@ def export_participants_route(conference_id):
     if not user or not (user.is_organizer or user.is_admin):
         return 'Organizer privileges required.', 403
 
-    conference = (
-        get_conference_for_admin(conference_id)
-        if user.is_admin
-        else get_conference_for_organizer(conference_id, user_id)
-    )
+    conference = get_conference_for_organizer(conference_id, user_id)
     if conference is None:
         return 'Conference not found.', 404
 
@@ -365,7 +372,7 @@ def invite_participant_route(conference_id):
 
 @app.route('/conferences/<conference_id>/register', methods=['POST'])
 def register_participant_route(conference_id):
-    """Register the signed-in participant for a conference."""
+    """Register the signed-in user for a conference."""
     participant_id = session.get('user_id')
     if not participant_id:
         return 'Login required.', 401
@@ -395,6 +402,56 @@ def unregister_participant_route(conference_id):
         app.logger.exception("Unable to unregister participant")
         return 'Unregistration failed. Please try again.', 500
     return redirect(url_for('my_conferences_page'))
+
+
+@app.route('/conferences/<conference_id>/receipt', methods=['GET'])
+def download_registration_receipt(conference_id):
+    """Download the signed-in participant's receipt for a registered conference."""
+    participant_id = session.get('user_id')
+    if not participant_id:
+        return redirect(url_for('login'))
+
+    receipt = get_registration_receipt(participant_id, conference_id)
+    if receipt is None:
+        return 'No registration was found.', 404
+
+    first_name, last_name, registration_number, registered_at, name, event_datetime, location, description = receipt
+    submission_date = (
+        registered_at.strftime('%Y-%m-%d %H:%M:%S')
+        if hasattr(registered_at, 'strftime')
+        else str(registered_at)
+    )
+    event_date = (
+        event_datetime.strftime('%Y-%m-%d %H:%M:%S')
+        if hasattr(event_datetime, 'strftime')
+        else str(event_datetime)
+    )
+    receipt_text = "\n".join([
+        "Conference Registration Receipt",
+        "",
+        f"Participant: {first_name} {last_name}",
+        f"Registration number: {registration_number}",
+        f"Submission date: {submission_date}",
+        "",
+        "Selected session:",
+        f"  {name}",
+        "",
+        "Current session details:",
+        f"  Date and time: {event_date}",
+        f"  Location: {location}",
+        f"  Description: {description}",
+    ]) + "\n"
+
+    return Response(
+        receipt_text,
+        mimetype='text/plain',
+        headers={
+            'Content-Disposition': (
+                f'attachment; filename="registration-{registration_number}.txt"'
+            ),
+            'Cache-Control': 'no-store',
+        },
+    )
 
 @app.route('/conference_audit', methods=['GET'])
 def view_audit_log():

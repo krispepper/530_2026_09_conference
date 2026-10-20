@@ -29,11 +29,24 @@
     </style>
 </head>
 <body>
+    {% include '_navigation.html' %}
     <h1>Conference Registration System</h1>
     <p>Browse conferences and manage conference registration.</p>
-    <div class="actions">
-        <a class="button" href="{{ url_for('login') }}">Log in</a>
-        <a class="button secondary" href="{{ url_for('add_user_page') }}">Create new user</a>
-    </div>
+    {% if logged_in %}
+        {% if current_user %}
+            <p>Welcome back, {{ current_user.f_name }}.</p>
+        {% else %}
+            <p>Your session is active, but your user profile could not be loaded.</p>
+        {% endif %}
+        <div class="actions">
+            <a class="button" href="{{ url_for('conferences_page') }}">View conferences</a>
+            <a class="button secondary" href="{{ url_for('my_conferences_page') }}">My conferences</a>
+        </div>
+    {% else %}
+        <div class="actions">
+            <a class="button" href="{{ url_for('login') }}">Log in</a>
+            <a class="button secondary" href="{{ url_for('add_user_page') }}">Create new user</a>
+        </div>
+    {% endif %}
 </body>
 </html>
