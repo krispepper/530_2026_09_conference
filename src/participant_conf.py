@@ -2,6 +2,7 @@
 # Purpose: Manage invitations, registrations, and cancellations.
 # AI assistance: ChatGPT helped enforce conference seat capacity.
 from enum import Enum
+from uuid import uuid4
 
 from db import (
     CONFERENCE_TABLE,
@@ -202,13 +203,16 @@ def register_participant(participant_id, conference_id):
             raise ValueError("This conference is full.")
 
         if registration_type == "restricted":
+            registration_number = str(uuid4())
             cursor.execute(
                 f"""UPDATE `{PARTICIPANT_CONFERENCE_TABLE}`
-                    SET status = %s, registered_at = CURRENT_TIMESTAMP
+                    SET status = %s, registered_at = CURRENT_TIMESTAMP,
+                        registration_number = %s
                     WHERE participant_id = %s AND conference_id = %s
                       AND status IN (%s, %s)""",
                 (
                     ParticipantConferenceStatus.REGISTERED.value,
+                    registration_number,
                     participant_id,
                     conference_id,
                     ParticipantConferenceStatus.INVITED.value,
@@ -220,18 +224,25 @@ def register_participant(participant_id, conference_id):
                     "An invitation or approval is required to register."
                 )
         else:
+            registration_number = str(uuid4())
             cursor.execute(
                 f"""INSERT INTO `{PARTICIPANT_CONFERENCE_TABLE}`
-                    (participant_id, conference_id, status, registered_at)
-                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP)
+                    (participant_id, conference_id, status, registered_at,
+                     registration_number)
+                    VALUES (%s, %s, %s, CURRENT_TIMESTAMP, %s)
                     ON DUPLICATE KEY UPDATE
-                        status = IF(status = %s, status, %s),
+                        registration_number = IF(status = %s,
+                                                 registration_number, %s),
                         registered_at = IF(status = %s,
-                                           registered_at, CURRENT_TIMESTAMP)""",
+                                           registered_at, CURRENT_TIMESTAMP),
+                        status = IF(status = %s, status, %s)""",
                 (
                     participant_id,
                     conference_id,
                     ParticipantConferenceStatus.REGISTERED.value,
+                    registration_number,
+                    ParticipantConferenceStatus.REGISTERED.value,
+                    registration_number,
                     ParticipantConferenceStatus.REGISTERED.value,
                     ParticipantConferenceStatus.REGISTERED.value,
                     ParticipantConferenceStatus.REGISTERED.value,
@@ -411,3 +422,30 @@ def get_participant_upcoming_attendance(participant_id):
     connection.close()
 
     return data
+
+
+def get_registration_receipt(participant_id, conference_id):
+    """Return receipt data only for the participant's own registration."""
+    connection = get_connection()
+    cursor = connection.cursor()
+    try:
+        cursor.execute(
+            f"""SELECT u.f_name, u.l_name, pc.registration_number,
+                       pc.registered_at, c.name, c.event_datetime,
+                       c.location, c.description
+                FROM `{PARTICIPANT_CONFERENCE_TABLE}` pc
+                JOIN `{USER_TABLE}` u ON u.user_id = pc.participant_id
+                JOIN `{CONFERENCE_TABLE}` c ON c.conference_id = pc.conference_id
+                WHERE pc.participant_id = %s
+                  AND pc.conference_id = %s
+                  AND pc.status = %s""",
+            (
+                participant_id,
+                conference_id,
+                ParticipantConferenceStatus.REGISTERED.value,
+            ),
+        )
+        return cursor.fetchone()
+    finally:
+        cursor.close()
+        connection.close()

@@ -41,6 +41,11 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
                 <button type="submit">Send invitation</button>
             </form>
         {% elif current_user and current_user.is_participant and conference.membership_status == 'registered' %}
+            <p>
+                <a class="button" href="{{ url_for('download_registration_receipt', conference_id=conference.conference_id) }}">
+                    Download receipt
+                </a>
+            </p>
             <form method="post" action="{{ url_for('unregister_participant_route', conference_id=conference.conference_id) }}">
                 <button type="submit">Unregister</button>
             </form>

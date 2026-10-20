@@ -32,6 +32,7 @@ from participant_conf import (
     register_participant,
     unregister_participant,
     get_participant_upcoming_attendance,
+    get_registration_receipt,
 )
 
 from user import *
@@ -395,6 +396,56 @@ def unregister_participant_route(conference_id):
         app.logger.exception("Unable to unregister participant")
         return 'Unregistration failed. Please try again.', 500
     return redirect(url_for('my_conferences_page'))
+
+
+@app.route('/conferences/<conference_id>/receipt', methods=['GET'])
+def download_registration_receipt(conference_id):
+    """Download the signed-in participant's receipt for a registered conference."""
+    participant_id = session.get('user_id')
+    if not participant_id:
+        return redirect(url_for('login'))
+
+    receipt = get_registration_receipt(participant_id, conference_id)
+    if receipt is None:
+        return 'No registration was found.', 404
+
+    first_name, last_name, registration_number, registered_at, name, event_datetime, location, description = receipt
+    submission_date = (
+        registered_at.strftime('%Y-%m-%d %H:%M:%S')
+        if hasattr(registered_at, 'strftime')
+        else str(registered_at)
+    )
+    event_date = (
+        event_datetime.strftime('%Y-%m-%d %H:%M:%S')
+        if hasattr(event_datetime, 'strftime')
+        else str(event_datetime)
+    )
+    receipt_text = "\n".join([
+        "Conference Registration Receipt",
+        "",
+        f"Participant: {first_name} {last_name}",
+        f"Registration number: {registration_number}",
+        f"Submission date: {submission_date}",
+        "",
+        "Selected session:",
+        f"  {name}",
+        "",
+        "Current session details:",
+        f"  Date and time: {event_date}",
+        f"  Location: {location}",
+        f"  Description: {description}",
+    ]) + "\n"
+
+    return Response(
+        receipt_text,
+        mimetype='text/plain',
+        headers={
+            'Content-Disposition': (
+                f'attachment; filename="registration-{registration_number}.txt"'
+            ),
+            'Cache-Control': 'no-store',
+        },
+    )
 
 @app.route('/conference_audit', methods=['GET'])
 def view_audit_log():
