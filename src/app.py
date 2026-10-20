@@ -29,6 +29,7 @@ from participant_conf import (
     invite_participant,
     register_participant,
     unregister_participant,
+    get_participant_upcoming_attendance,
 )
 
 from user import *
@@ -390,6 +391,20 @@ def view_audit_log():
         'audit_log.html',
         log=log,
         no_results=(len(log)==0)
+    )
+
+@app.route('/upcoming_attendance', methods=['GET'])
+def view_upcoming_attendance():
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+
+    upcoming = get_participant_upcoming_attendance(user_id)
+
+    return render_template(
+        'upcoming_attendance.html',
+        upcoming=upcoming,
+        no_results=(len(upcoming)==0)
     )
 
 if __name__ == '__main__':

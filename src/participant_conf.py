@@ -274,3 +274,29 @@ def unregister_participant(participant_id, conference_id):
     finally:
         cursor.close()
         connection.close()
+
+
+def get_participant_upcoming_attendance(participant_id):
+    """
+    Provides information about conferences that a given participant is registered for.
+    """
+    connection = get_connection()
+    cursor = connection.cursor(dictionary=True)
+
+    sql = f"""SELECT pc.status, pc.registered_at,
+        c.name, c.description, c.event_datetime, c.location
+        FROM (SELECT * FROM `{PARTICIPANT_CONFERENCE_TABLE}` WHERE participant_id LIKE %s ESCAPE '') pc
+        JOIN (SELECT * FROM `{CONFERENCE_TABLE}` WHERE event_datetime > NOW()) c ON c.conference_id = pc.conference_id
+        ORDER BY c.event_datetime ASC
+        ;"""
+
+    cursor.execute(sql, (participant_id,))
+    data = cursor.fetchall()
+
+    cursor.close()
+    connection.close()
+
+    return data
+
+
+
