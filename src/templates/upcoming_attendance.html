@@ -1,0 +1,35 @@
+<!--Written by Ned Hunter-->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Add new user</title>
+</head>
+<body>
+    {% include '_navigation.html' %}
+    <table border="1">
+        <tr>
+            <th>Conference Name</th>
+            <th>Description</th>
+            <th>Date and Time</th>
+            <th>Location</th>
+            <th>Status</th>
+            <th>Regestered At</th>
+        </tr>
+        {% for conf in upcoming %}
+        <tr>
+            <td>{{ conf.name }}</td>
+            <td>{{ conf.description }}</td>
+            <td>{{ conf.event_datetime }}</td>
+            <td>{{ conf.location }}</td>
+            <td>{{ conf.status }}</td>
+            <td>{{ conf.registered_at }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    {% if no_results %}
+    <p>You are not registered for any upcoming conferences.</p>
+    {% endif %}
+</body>
+</html>
