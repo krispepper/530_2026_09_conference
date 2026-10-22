@@ -1,0 +1,84 @@
+
+Known UAT test data
+-------------------
+The seeded UAT data includes these users:
+
+       u1 - organizer
+       u2 - administrator and owner of Spring Technology Research Forum
+       u3 - participant
+       u4 - participant invited to the restricted workshop
+
+The login form uses the user ID. Obtain the corresponding UAT password
+securely from the instructor or UAT administrator before recording the test.
+Do not assume that a local development password is valid in UAT.
+
+Seeded conferences:
+
+       c1 - Adelphi Software Engineering Conference
+            Open registration, capacity 100, owned by u1
+       c2 - Spring Technology Research Forum
+            Open registration, capacity 75, owned by u2
+       c3 - Invited Leadership Workshop
+            Restricted registration, capacity 25, owned by u1
+
+Sprint 3 test plan
+------------------
+
+1. Registration receipt
+
+   a. Log in as u3 or another registered participant.
+   b. Open View conferences and select an available conference.
+   c. Select Register and confirm that the conference shows the registered
+      state.
+   d. Select Download receipt.
+   e. Confirm that a receipt file downloads successfully.
+   f. Open the file and verify that it contains:
+         - participant name
+         - unique registration number
+         - submission date
+         - selected conference/session
+         - current session details, including date/time and location
+   g. Open a conference for which the user has no registration and attempt
+      the receipt URL. Confirm that the response says:
+         No registration was found.
+   h. Log out and attempt to open a receipt URL. Confirm that the application
+      redirects to the login page and does not display registration data.
+
+2. Organizer registration rules
+
+   a. Log in as u1.
+   b. Confirm that u1's own conferences are not shown in View conferences.
+   c. Confirm that conferences owned by another user can be viewed and
+      registered for when capacity is available.
+   d. Open u1's own conference directly, if needed, and confirm that the page
+      says the organizer cannot register for their own conference.
+   e. Log in as u2 and repeat the ownership check for c2. The administrator
+      owner must not be able to register for c2, but may register for a
+      conference owned by another user if the conference permits it.
+
+3. Participant CSV authorization
+
+   a. Log in as the organizer who owns a conference, such as u1 for c1 or c3.
+   b. Open the owned conference page.
+   c. Confirm that Download participant CSV is visible.
+   d. Download the CSV and verify that it contains participant registration
+      information.
+   e. Log in as u3 or another participant and open a conference page.
+   f. Confirm that Download participant CSV is not visible.
+   g. Log in as an organizer who does not own the conference and confirm that
+      the option is not visible.
+   h. Direct access to the CSV URL must also be rejected for non-owners.
+
+4. Navigation and session behavior
+
+   a. While logged out, open Home. Confirm that Home shows Log in and Create
+      new user, but the top toolbar does not show View conferences or Log in.
+   b. Log in successfully.
+   c. Confirm that the top toolbar shows the signed-in user and Log out.
+   d. Confirm that View conferences and My Conferences are available.
+   e. Select Home. Confirm that the session remains active, the user is still
+      shown as signed in, and Log out remains available.
+   f. Select Log out. Confirm that the session is cleared.
+   g. Confirm that the signed-out toolbar no longer shows View conferences or
+      Log out.
+
