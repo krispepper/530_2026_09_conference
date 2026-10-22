@@ -1,0 +1,7 @@
+Terminal 1
+-  ssh yourName@compsci.adelphi.edu
+-  cd /home/groupprojects/fall2026_530_conf/530_2026_09_conference
+-  ./run.sh
+
+Terminal 2
+- ssh -L 5003:localhost:5003 yourName@compsci.adelphi.edu

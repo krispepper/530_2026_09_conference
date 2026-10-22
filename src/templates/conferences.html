@@ -1,3 +1,4 @@
+<!-- AI assistance: ChatGPT helped add the Past events link. -->
 <!-- Purpose: Display conference details and seat availability.
 AI assistance: ChatGPT helped display seats and registration availability. -->
 <!DOCTYPE html>
@@ -9,6 +10,15 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
 <body>
     {% include '_navigation.html' %}
     <h1>{{ title|default('Published Conferences') }}</h1>
+    {% if title|default('') == 'My Conferences'
+          and current_user and current_user.is_participant %}
+        <p>
+            <a class="button" href="{{ url_for('past_events_page') }}">
+                Past events
+            </a>
+        </p>
+    {% endif %}
+
     {% for conference in conferences %}
         <article>
             <h2>{{ conference.name }}</h2>

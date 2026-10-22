@@ -178,9 +178,10 @@ def publish_conference(conference_id, organizer_id):
         connection.close()
 
 
-def get_published_conferences():
+def get_published_conferences(exclude_organizer_id=None):
     """
-    Gets all published conferences that allow open registration.
+    Gets published open conferences, excluding conferences owned by a user
+    when an organizer ID is provided.
     @return: list of ConferenceModel objects
     """
     connection = get_connection()
@@ -189,10 +190,12 @@ def get_published_conferences():
         event_datetime, location, registration_type, is_published,
         created_at, published_at
         FROM `{CONFERENCE_TABLE}`
-        WHERE is_published = TRUE AND registration_type = 'open'
+        WHERE is_published = TRUE
+          AND registration_type = 'open'
+          AND (%s IS NULL OR organizer_id <> %s)
         ORDER BY event_datetime"""
     try:
-        cursor.execute(sql)
+        cursor.execute(sql, (exclude_organizer_id, exclude_organizer_id))
         conference_data = cursor.fetchall()
     finally:
         cursor.close()
