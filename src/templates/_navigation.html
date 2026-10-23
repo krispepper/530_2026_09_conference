@@ -24,7 +24,7 @@
         <a class="button" href="{{ url_for('create_conference_page') }}">Create conference</a>
         <a class="button" href="{{ url_for('view_audit_log') }}">Audit</a>
     {% endif %}
-    {% if is_admin %}
+    {% if can_manage_users %}
         <a class="button" href="{{ url_for('add_user_page') }}">Manage users</a>
     {% endif %}
     {% if logged_in %}

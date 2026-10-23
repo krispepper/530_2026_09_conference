@@ -3,6 +3,8 @@
 .env
 !/.gitignore
 !*.txt
+!ROLE_PERMISSIONS.md
+!*.xlsx
 !src/
 !src/*.py
 !*.sh
