@@ -78,6 +78,7 @@ def navigation_context():
             )
         ),
         'is_admin': bool(current_user and current_user.is_admin),
+        'can_manage_users': bool(current_user and current_user.is_admin),
     }
 
 
@@ -187,7 +188,7 @@ def conferences_page():
     user = get_user_by_id(user_id) if user_id else None
     organizer_id = (
         user.user_id
-        if user and user.is_organizer
+        if user and (user.is_organizer or user.is_admin)
         else None
     )
     return render_template(
@@ -329,7 +330,10 @@ def conference_page(conference_id):
         )
     can_manage = bool(
         current_user := get_current_user()
-    ) and (current_user.is_admin or conference.organizer_id == current_user.user_id)
+    ) and (
+        current_user.is_admin
+        or conference.organizer_id == current_user.user_id
+    )
     return render_template(
         'conference.html',
         conference=conference,
@@ -414,11 +418,10 @@ def cancel_reg_route(conference_id, user_id):
 @app.route('/conferences/<conference_id>/invite', methods=['POST'])
 def invite_participant_route(conference_id):
     """Invite a participant to a restricted conference."""
-    organizer_id = session.get('user_id')
-    if not organizer_id or not (
-        is_user_organizer(organizer_id) or is_user_admin(organizer_id)
-    ):
-        return 'Organizer privileges required.', 403
+    user, error = require_role('is_organizer', 'is_admin')
+    if error:
+        return error
+    organizer_id = user.user_id
 
     participant_id = request.form.get('participant_id', '').strip()
     if not participant_id:
@@ -429,7 +432,7 @@ def invite_participant_route(conference_id):
             participant_id,
             conference_id,
             organizer_id,
-            is_admin=get_user_by_id(organizer_id).is_admin,
+            is_admin=user.is_admin,
         )
     except ValueError as error:
         return str(error), 404
