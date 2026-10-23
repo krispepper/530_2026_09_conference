@@ -155,7 +155,7 @@ def get_conference_for_admin(conference_id):
     return ConferenceModel(*conference_data) if conference_data else None
 
 
-def publish_conference(conference_id, organizer_id):
+def publish_conference(conference_id, user_id, is_admin=False):
     """
     Publishes an unpublished conference owned by the organizer.
     @return: None
@@ -164,9 +164,11 @@ def publish_conference(conference_id, organizer_id):
     cursor = connection.cursor()
     sql = f"""UPDATE `{CONFERENCE_TABLE}`
         SET is_published = TRUE, published_at = CURRENT_TIMESTAMP
-        WHERE conference_id = %s AND organizer_id = %s AND is_published = FALSE"""
+        WHERE conference_id = %s
+          AND (organizer_id = %s OR %s = TRUE)
+          AND is_published = FALSE"""
     try:
-        cursor.execute(sql, (conference_id, organizer_id))
+        cursor.execute(sql, (conference_id, user_id, is_admin))
         if cursor.rowcount != 1:
             raise ValueError("Conference was not found or is already published.")
         connection.commit()
@@ -226,14 +228,21 @@ def get_conferences_for_organizer(organizer_id):
 
 
 #TODO: use only get_conference_by_organizer / extract common logic...
-def get_my_conferences(user_id, is_organizer=False):
+def get_my_conferences(user_id, is_organizer=False, is_admin=False):
     """
     Gets conferences owned by an organizer or joined by a participant.
     @return: list of ConferenceModel objects with membership status
     """
     connection = get_connection()
     cursor = connection.cursor()
-    if is_organizer:
+    if is_admin:
+        sql = f"""SELECT conference_id, organizer_id, name, description,
+            event_datetime, location, registration_type, is_published,
+            created_at, published_at
+            FROM `{CONFERENCE_TABLE}`
+            ORDER BY event_datetime"""
+        parameters = ()
+    elif is_organizer:
         sql = f"""SELECT conference_id, organizer_id, name, description,
             event_datetime, location, registration_type, is_published,
             created_at, published_at
@@ -260,9 +269,12 @@ def get_my_conferences(user_id, is_organizer=False):
         connection.close()
 
     conferences = []
+    is_owner_view = is_organizer or is_admin
     for data in conference_data:
         conference = ConferenceModel(*data[:10])
-        conference.membership_status = "Organizer" if is_organizer else data[10].capitalize()
+        conference.membership_status = (
+            "Organizer" if is_owner_view else data[10].capitalize()
+        )
         conferences.append(conference)
     return conferences
 

@@ -44,7 +44,7 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
 
         {% if current_user and current_user.is_organizer and is_owner %}
             <p>As the organizer, you cannot register for your own conference.</p>
-        {% elif current_user and conference.membership_status == 'registered' %}
+        {% elif current_user and current_user.is_participant and conference.membership_status == 'registered' %}
             <p>
                 <a class="button" href="{{ url_for('download_registration_receipt', conference_id=conference.conference_id) }}">
                     Download receipt
@@ -53,14 +53,16 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
             <form method="post" action="{{ url_for('unregister_participant_route', conference_id=conference.conference_id) }}">
                 <button type="submit">Unregister</button>
             </form>
-        {% elif current_user
+        {% elif current_user and current_user.is_participant
                 and (conference.remaining_seats is none
                      or conference.remaining_seats == 0) %}
             <p>Registration is unavailable.</p>
-        {% elif current_user %}
+        {% elif current_user and current_user.is_participant %}
             <form method="post" action="{{ url_for('register_participant_route', conference_id=conference.conference_id) }}">
                 <button type="submit">Register</button>
             </form>
+        {% elif current_user %}
+            <p>Only participants can register for conferences.</p>
         {% else %}
             <p>Log in to register for this conference.</p>
         {% endif %}
