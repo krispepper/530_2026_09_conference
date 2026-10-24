@@ -27,4 +27,3 @@ classDiagram
     }
     Conference "1" -- "0..*" Registration : has
     Participant "1" -- "0..*" Registration : makes
-\```
