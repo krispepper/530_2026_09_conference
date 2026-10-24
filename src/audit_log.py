@@ -41,7 +41,9 @@ def log_conference_invite(conference_id, user_id, invitee):
     connection.close()
 
 
-def fetch_conference_log(conference_id = None, user_id = None, action = None):
+def fetch_conference_log(
+    conference_id=None, user_id=None, action=None, owner_id=None
+):
     """
     Reads conference audit log data from database.
     """
@@ -49,15 +51,29 @@ def fetch_conference_log(conference_id = None, user_id = None, action = None):
     connection = get_connection()
     cursor = connection.cursor(dictionary=True)
 
-    sql = f"""SELECT a.conference_id, a.timestamp, a.user_id, a.action, a.invitee
-    FROM {CONFERENCE_AUDIT_TABLE} a 
-    {"WHERE a.conference_id LIKE %s ESCAPE ''" if conference_id is not None else ""}
-    {"WHERE a.user_id LIKE %s ESCAPE ''" if user_id is not None else ""}
-    {"WHERE a.action LIKE %s ESCAPE ''" if action is not None else ""}
-    ORDER BY a.timestamp DESC
-    ;"""
+    conditions = []
+    parameters = []
+    if owner_id is not None:
+        conditions.append(
+            "EXISTS (SELECT 1 FROM conference c "
+            "WHERE c.conference_id = a.conference_id AND c.organizer_id = %s)"
+        )
+        parameters.append(owner_id)
+    for column, value in (
+        ("a.conference_id", conference_id),
+        ("a.user_id", user_id),
+        ("a.action", action),
+    ):
+        if value is not None:
+            conditions.append(f"{column} LIKE %s ESCAPE ''")
+            parameters.append(value)
 
-    cursor.execute(sql, [x for x in [conference_id, user_id, action] if x is not None])
+    sql = f"""SELECT a.conference_id, a.timestamp, a.user_id, a.action, a.invitee
+    FROM {CONFERENCE_AUDIT_TABLE} a
+    {"WHERE " + " AND ".join(conditions) if conditions else ""}
+    ORDER BY a.timestamp DESC;"""
+
+    cursor.execute(sql, parameters)
     log_data = cursor.fetchall()
     cursor.close()
     connection.close()

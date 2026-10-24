@@ -3,6 +3,9 @@
 .env
 !/.gitignore
 !*.txt
+!ROLE_PERMISSIONS.md
+!ROLE_USE_CASE_DIAGRAM.md
+!*.xlsx
 !src/
 !src/*.py
 !*.sh
