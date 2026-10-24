@@ -12,7 +12,7 @@ classDiagram
         +bool is_published
         +datetime published_at
         +is_registration_open() bool
-        +validate_conference_form(form) tuple
+        +validate_conference_form(form)
     }
     class Participant {
         +int participant_id
@@ -27,4 +27,4 @@ classDiagram
     }
     Conference "1" -- "0..*" Registration : has
     Participant "1" -- "0..*" Registration : makes
-
+\```
