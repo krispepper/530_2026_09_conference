@@ -1,5 +1,3 @@
-# Class Diagram - Registration Deadline
-
 ```mermaid
 classDiagram
     class Conference {
