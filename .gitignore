@@ -10,4 +10,4 @@
 !src/templates/*.html
 !tests/
 !tests/*.py
-!ROLE_CLASS_DIAGRAM.md
+!Role_class_diagram.md
