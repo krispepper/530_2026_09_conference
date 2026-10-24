@@ -12,7 +12,7 @@ classDiagram
         +bool is_published
         +datetime published_at
         +is_registration_open() bool
-        +validate_conference_form(form)
+        +validate_conference_form(form)void
     }
     class Participant {
         +int participant_id
