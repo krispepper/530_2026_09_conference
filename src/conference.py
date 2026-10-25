@@ -75,6 +75,10 @@ def create_conference(
         connection.close()
 
 def get_conference_by_id(conference_id, participant_id=None, is_published=True):
+    """
+    Gets a published conference by ID with participant access check.
+    Returns conference if user has access via open registration or invite.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""    SELECT c.conference_id, c.organizer_id, c.name, c.description,
@@ -108,6 +112,9 @@ def get_conference_by_id(conference_id, participant_id=None, is_published=True):
     return ConferenceModel(*conference_data) if conference_data else None
 
 def get_conference_for_organizer(conference_id, organizer_id):
+    """
+    Gets a conference for organizer view - checks organizer owns it.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""SELECT conference_id, organizer_id, name, description,
@@ -124,6 +131,9 @@ def get_conference_for_organizer(conference_id, organizer_id):
     return ConferenceModel(*conference_data) if conference_data else None
 
 def get_conference_for_admin(conference_id):
+    """
+    Gets any conference for admin view.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""SELECT conference_id, organizer_id, name, description,
@@ -140,6 +150,9 @@ def get_conference_for_admin(conference_id):
     return ConferenceModel(*conference_data) if conference_data else None
 
 def publish_conference(conference_id, user_id, is_admin=False):
+    """
+    Publishes a conference - allows organizer or admin to publish.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""UPDATE `{CONFERENCE_TABLE}`
@@ -160,6 +173,9 @@ def publish_conference(conference_id, user_id, is_admin=False):
         connection.close()
 
 def get_published_conferences(exclude_organizer_id=None):
+    """
+    Gets all published open conferences, optionally excluding organizer's own.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""SELECT conference_id, organizer_id, name, description,
@@ -179,6 +195,9 @@ def get_published_conferences(exclude_organizer_id=None):
     return [ConferenceModel(*data) for data in conference_data]
 
 def get_conferences_for_organizer(organizer_id):
+    """
+    Gets all conferences owned by organizer.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     sql = f"""SELECT conference_id, organizer_id, name, description,
@@ -196,6 +215,9 @@ def get_conferences_for_organizer(organizer_id):
     return [ConferenceModel(*data) for data in conference_data]
 
 def get_my_conferences(user_id, is_organizer=False, is_admin=False):
+    """
+    Gets conferences for current user - admin sees all, organizer sees owned, participant sees registered.
+    """
     connection = get_connection()
     cursor = connection.cursor()
     if is_admin:
@@ -242,6 +264,9 @@ def get_my_conferences(user_id, is_organizer=False, is_admin=False):
     return conferences
 
 def validate_conference_form(form):
+    """
+    Validates conference form data including registration deadline.
+    """
     values = {
         "name": form.get("name", "").strip(),
         "description": form.get("description", "").strip(),
@@ -270,6 +295,51 @@ def validate_conference_form(form):
     if values["registration_deadline"]:
         try:
             values["registration_deadline"] = datetime.fromisoformat(values["registration_deadline"])
+        except ValueError:
+            errors["registration_deadline"] = "Enter a valid deadline date and time."
+    # deadline must be before event
+    if "event_datetime" not in errors and "registration_deadline" not in errors:
+        if values["registration_deadline"] and values["event_datetime"]:
+            if values["registration_deadline"] >= values["event_datetime"]:
+                errors["registration_deadline"] = "Deadline must be before event date."
+    if values["registration_type"] not in VALID_REGISTRATION_TYPES:
+        errors["registration_type"] = "Choose open or restricted registration."
+    return values, errors
+
+def attach_seat_availability(conferences):
+    """
+    Attaches capacity and remaining seats to conferences by calculating registrations.
+    """
+    from seats import calculate_remaining_seats
+    if not conferences:
+        return conferences
+    connection = get_connection()
+    cursor = connection.cursor()
+    placeholders = ", ".join(["%s"] * len(conferences))
+    conference_ids = tuple(item.conference_id for item in conferences)
+    sql = f"""
+        SELECT c.conference_id, c.capacity, COUNT(pc.participant_id)
+        FROM `{CONFERENCE_TABLE}` c
+        LEFT JOIN `{PARTICIPANT_CONFERENCE_TABLE}` pc
+            ON pc.conference_id = c.conference_id
+            AND pc.status = 'registered'
+        WHERE c.conference_id IN ({placeholders})
+        GROUP BY c.conference_id, c.capacity
+    """
+    try:
+        cursor.execute(sql, conference_ids)
+        availability = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
+    finally:
+        cursor.close()
+        connection.close()
+    for conference in conferences:
+        capacity, registered_count = availability.get(conference.conference_id, (None, 0))
+        conference.capacity = capacity
+        conference.remaining_seats = (
+            calculate_remaining_seats(capacity, registered_count)
+            if capacity is not None else None
+        )
+    return conferences          values["registration_deadline"] = datetime.fromisoformat(values["registration_deadline"])
         except ValueError:
             errors["registration_deadline"] = "Enter a valid deadline date and time."
     # deadline must be before event
