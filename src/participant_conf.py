@@ -82,7 +82,7 @@ def get_conference_participants(conference_id):
 
 
 #TODO: try to simplify the function...
-def invite_participant(participant_id, conference_id, organizer_id):
+def invite_participant(participant_id, conference_id, organizer_id, is_admin=False):
     """
     Creates an invitation for a participant to a restricted conference.
     @return: ParticipantConferenceModel
@@ -94,9 +94,9 @@ def invite_participant(participant_id, conference_id, organizer_id):
             f"""SELECT c.conference_id
                 FROM `{CONFERENCE_TABLE}` c
                 WHERE c.conference_id = %s
-                  AND c.organizer_id = %s
+                  AND (c.organizer_id = %s OR %s = TRUE)
                   AND c.registration_type = 'restricted'""",
-            (conference_id, organizer_id),
+            (conference_id, organizer_id, is_admin),
         )
         if cursor.fetchone() is None:
             raise ValueError("Conference was not found or is not restricted.")
@@ -149,7 +149,7 @@ def invite_participant(participant_id, conference_id, organizer_id):
         connection.close()
 
 
-def register_participant(participant_id, conference_id):
+def register_participant(participant_id, conference_id, is_admin=False):
     """
     Registers a participant for a published conference.
     """
@@ -173,9 +173,7 @@ def register_participant(participant_id, conference_id):
                     ON owned.organizer_id = u.user_id
                    AND owned.conference_id = %s
                 WHERE u.user_id = %s
-                  AND (u.is_participant = TRUE
-                       OR u.is_organizer = TRUE
-                       OR u.is_admin = TRUE)
+                  AND (u.is_participant = TRUE OR u.is_admin = TRUE)
                   AND NOT (u.is_organizer = TRUE
                            AND owned.conference_id IS NOT NULL)""",
             (conference_id, participant_id),
@@ -211,7 +209,7 @@ def register_participant(participant_id, conference_id):
         if registered_count >= capacity:
             raise ValueError("This conference is full.")
 
-        if registration_type == "restricted":
+        if registration_type == "restricted" and not is_admin:
             registration_number = str(uuid4())
             cursor.execute(
                 f"""UPDATE `{PARTICIPANT_CONFERENCE_TABLE}`
@@ -431,6 +429,28 @@ def get_participant_upcoming_attendance(participant_id):
     connection.close()
 
     return data
+
+
+def get_all_upcoming_attendance():
+    """Provides all upcoming registrations for administrators."""
+    connection = get_connection()
+    cursor = connection.cursor(dictionary=True)
+    try:
+        cursor.execute(
+            f"""SELECT pc.participant_id, pc.status, pc.registered_at,
+                       u.f_name, u.l_name, u.email,
+                       c.name, c.description, c.event_datetime, c.location
+                FROM `{PARTICIPANT_CONFERENCE_TABLE}` pc
+                JOIN `{USER_TABLE}` u ON u.user_id = pc.participant_id
+                JOIN `{CONFERENCE_TABLE}` c
+                    ON c.conference_id = pc.conference_id
+                WHERE c.event_datetime > NOW()
+                ORDER BY c.event_datetime ASC, u.l_name, u.f_name"""
+        )
+        return cursor.fetchall()
+    finally:
+        cursor.close()
+        connection.close()
 
 
 def get_registration_receipt(participant_id, conference_id):
