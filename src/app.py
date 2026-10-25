@@ -40,6 +40,8 @@ import os
 from dotenv import load_dotenv, dotenv_values
 from audit_log import fetch_conference_log
 
+from datetime import datetime
+
 load_dotenv()
 
 # export PORT="[server port]"
@@ -462,7 +464,10 @@ def view_audit_log():
     if not (is_user_organizer(user_id) or is_user_admin(user_id)):
         return 'Access denied', 403
 
-    log = fetch_conference_log(request.args.get("conference"), request.args.get("user"), request.args.get("action"))
+    before_time = datetime.fromisoformat(request.args.get("before")) if "before" in request.args else None
+    after_time = datetime.fromisoformat(request.args.get("after")) if "after" in request.args else None
+    
+    log = fetch_conference_log(request.args.get("conference"), request.args.get("user"), request.args.get("action"), before_time, after_time)
 
     return render_template(
         'audit_log.html',
