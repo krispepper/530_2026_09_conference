@@ -13,7 +13,9 @@
             </button>
             <div class="dropdown-content">
                 <a href="{{ url_for('my_conferences_page') }}">My conferences</a>
-                <a href="{{ url_for('view_upcoming_attendance') }}">Upcoming Attendance</a>
+                {% if current_user.is_participant or current_user.is_admin %}
+                    <a href="{{ url_for('view_upcoming_attendance') }}">Upcoming Attendance</a>
+                {% endif %}
             </div>
         </div>
         
@@ -21,6 +23,9 @@
     {% if can_manage_conferences %}
         <a class="button" href="{{ url_for('create_conference_page') }}">Create conference</a>
         <a class="button" href="{{ url_for('view_audit_log') }}">Audit</a>
+    {% endif %}
+    {% if can_manage_users %}
+        <a class="button" href="{{ url_for('add_user_page') }}">Manage users</a>
     {% endif %}
     {% if logged_in %}
         <span>Signed in{% if current_user %} as {{ current_user.user_id }}{% endif %}</span>
