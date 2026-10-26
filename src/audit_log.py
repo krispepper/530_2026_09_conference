@@ -41,38 +41,44 @@ def log_conference_invite(conference_id, user_id, invitee):
     connection.close()
 
 
-def fetch_conference_log(conference_id = None, user_id = None, action = None, before = None, after = None):
+def fetch_conference_log(
+    conference_id=None, user_id=None, action=None, before = None, after = None, owner_id=None
+):
     """
     Reads conference audit log data from database.
     """
 
     connection = get_connection()
     cursor = connection.cursor(dictionary=True)
-    print("After: " + str(after))
 
-    conditions = [x for x in [
-        "a.conference_id LIKE %s ESCAPE ''" if conference_id is not None else None,
-        "a.user_id LIKE %s ESCAPE ''" if user_id is not None else None,
-        "a.action LIKE %s ESCAPE ''" if action is not None else None,
-        "a.timestamp < %s" if before is not None else None,
-        "a.timestamp > %s" if after is not None else None,
-    ] if x is not None]
+    conditions = []
+    parameters = []
+    if owner_id is not None:
+        conditions.append(
+            "EXISTS (SELECT 1 FROM conference c "
+            "WHERE c.conference_id = a.conference_id AND c.organizer_id = %s)"
+        )
+        parameters.append(owner_id)
+    for column, value in (
+        ("a.conference_id", conference_id),
+        ("a.user_id", user_id),
+        ("a.action", action),
+        ("a.timestamp <", before),
+        ("a.timestamp >", after),
+    ):
+        if value is not None:
+            if column[-1] in "<>":
+                conditions.append(f"{column} %s")
+            else:
+                conditions.append(f"{column} LIKE %s ESCAPE ''")
+            parameters.append(value)
 
     sql = f"""SELECT a.conference_id, a.timestamp, a.user_id, a.action, a.invitee
-    FROM {CONFERENCE_AUDIT_TABLE} a 
+    FROM {CONFERENCE_AUDIT_TABLE} a
     {"WHERE " + " AND ".join(conditions) if conditions else ""}
-    ORDER BY a.timestamp DESC
-    ;"""
+    ORDER BY a.timestamp DESC;"""
 
-    """
-    {"WHERE a.conference_id LIKE %s ESCAPE ''" if conference_id is not None else ""}
-    {"WHERE a.user_id LIKE %s ESCAPE ''" if user_id is not None else ""}
-    {"WHERE a.action LIKE %s ESCAPE ''" if action is not None else ""}
-    {"WHERE a.timestamp < %s" if before is not None else ""}
-    {"WHERE a.timestamp > %s" if after is not None else ""}
-    """
-
-    cursor.execute(sql, [x for x in [conference_id, user_id, action, before, after] if x is not None])
+    cursor.execute(sql, parameters)
     log_data = cursor.fetchall()
     cursor.close()
     connection.close()

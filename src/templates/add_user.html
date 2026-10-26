@@ -6,6 +6,7 @@
 </head>
 <body>
     {% include '_navigation.html' %}
+    {% if error %}<p role="alert">{{ error }}</p>{% endif %}
     <form action="" method="post">
         <div>
             <label for="user_id">User ID</label>
