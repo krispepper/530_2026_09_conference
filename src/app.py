@@ -8,7 +8,7 @@ from past_attendance import get_past_events
 import csv
 import io
 
-from flask import Flask, Response, redirect, render_template, request, session, url_for
+from flask import Flask, Response, jsonify, redirect, render_template, request, session, url_for
 from mysql.connector import Error, IntegrityError, errorcode
 from mysql.connector import Error as DBError
 from werkzeug.routing import BuildError
@@ -33,6 +33,7 @@ from participant_conf import (
     register_participant,
     unregister_participant,
     get_participant_upcoming_attendance,
+    get_all_upcoming_attendance,
     get_registration_receipt,
 )
 
@@ -81,7 +82,27 @@ def navigation_context():
                 current_user.is_organizer or current_user.is_admin
             )
         ),
+        'is_admin': bool(current_user and current_user.is_admin),
+        'can_manage_users': bool(current_user and current_user.is_admin),
     }
+
+
+def get_current_user():
+    """Load the authenticated user for backend authorization checks."""
+    user_id = session.get('user_id')
+    return get_user_by_id(user_id) if user_id else None
+
+
+def require_role(*roles):
+    """Return an HTTP error response unless the session has one of the roles."""
+    user = get_current_user()
+    if user is None:
+        return None, ('Login required.', 401)
+    if user.is_admin:
+        return user, None
+    if not any(getattr(user, role, False) for role in roles):
+        return None, ('Access denied.', 403)
+    return user, None
 
 
 @app.route('/login', methods=['GET', 'POST'])
@@ -126,18 +147,22 @@ def logout():
 @app.route('/add_user', methods=['POST'])
 def add_user():
     """Create a user from submitted form data and display the user profile."""
+    _, error = require_role('is_admin')
+    if error:
+        return error
     fields = ['user_id', 'f_name', 'l_name', 'email', 'is_participant', 'is_admin', 'is_organizer']
     values = [(request.form[f] if not f.startswith("is_") else (f in request.form)) for f in
               fields]  # [request.form[f] for f in fields]
-    print(values)
     try:
         create_user(*values)
-        # session.clear() #clear session on add user
-        # session['user_id'] = values[0] #user_id
+    except ValueError as error:
+        return render_template(
+            'add_user.html', error=str(error)
+        ), 400
     except IntegrityError:
-        print("User already exists.")
-        # TODO: notify client
-        return "User already exists.", 403
+        return render_template(
+            'add_user.html', error='User ID already exists.'
+        ), 409
     except DBError as err:
         return render_template('server_error.html', errno=err.errno), 500
 
@@ -150,6 +175,9 @@ def add_user():
 @app.route('/add_user', methods=['GET'])
 def add_user_page():
     """Render the new-user form."""
+    _, error = require_role('is_admin')
+    if error:
+        return error
     return render_template('add_user.html')
 
 
@@ -157,7 +185,14 @@ def add_user_page():
 def view_user_page(**kwargs):
     """Render the profile page for the requested user."""
     try:
-        return render_template('view_user.html', dat=get_user_by_id(request.view_args['user_id']).__dict__)
+        user, error = require_role('is_admin')
+        requested_id = request.view_args['user_id']
+        if error and (get_current_user() is None or get_current_user().user_id != requested_id):
+            return error
+        requested_user = get_user_by_id(requested_id)
+        if requested_user is None:
+            return 'User not found.', 404
+        return render_template('view_user.html', dat=requested_user.__dict__)
     except DBError as err:
         return render_template('server_error.html', errno=err.errno), 500
 
@@ -198,7 +233,11 @@ def my_conferences_page():
             'conferences.html',
             title='My Conferences',
             conferences=attach_seat_availability(
-                get_my_conferences(user_id, is_conference_owner)
+                get_my_conferences(
+                    user_id,
+                    is_conference_owner,
+                    is_admin=user.is_admin,
+                )
             ),
             show_status=True,
         )
@@ -281,8 +320,9 @@ def publish_conference_route(conference_id):
     ):
         return 'Organizer privileges required.', 403
 
+    user = get_user_by_id(organizer_id)
     try:
-        publish_conference(conference_id, organizer_id)
+        publish_conference(conference_id, organizer_id, is_admin=user.is_admin)
     except ValueError:
         return 'Conference was not found or is already published.', 404
     except Error as err:
@@ -314,10 +354,30 @@ def conference_page(conference_id):
             conference.membership_status = get_participant_conference_status(
                 session['user_id'], conference_id
             )
+        if conference is None:
+            # Distinguish a missing conference from an existing conference that
+            # the current user cannot view.
+            existing_conference = get_conference_for_admin(conference_id)
+            if existing_conference is not None:
+                if not session.get('user_id'):
+                    return 'Login required.', 401
+                return 'You do not have permission to access this conference.', 403
+            return 'Conference not found.', 404
+        attach_seat_availability([conference])
+        if session.get('user_id'):
+            conference.membership_status = get_participant_conference_status(
+                session['user_id'], conference_id
+            )
+        can_manage = bool(
+            current_user := get_current_user()
+        ) and (
+            current_user.is_admin
+            or conference.organizer_id == current_user.user_id
+        )
         return render_template(
             'conference.html',
             conference=conference,
-            is_owner=conference.organizer_id == session.get('user_id'),
+            is_owner=can_manage,
         )
     except Error as err:
         return render_template('server_error.html', errno=err.errno), 500
@@ -339,6 +399,13 @@ def export_participants_route(conference_id):
         if conference is None:
             return 'Conference not found.', 404
 
+        conference = (
+            get_conference_for_admin(conference_id)
+            if user.is_admin
+            else get_conference_for_organizer(conference_id, user_id)
+        )
+        if conference is None:
+            return 'Conference not found.', 404
     except Error as err:
         return render_template('server_error.html', errno=err.errno), 500
 
@@ -371,22 +438,33 @@ def export_participants_route(conference_id):
 
 @app.route('/delete_user/<user_id>', methods=['POST'])
 def delete_user(user_id):
+    _, error = require_role('is_admin')
+    if error:
+        return error
     try:
         delete_user_by_id(user_id)
         return "User deleted successfully"
     except Error as err:
-        return f"Database error: {err.errno}", 500
+        app.logger.exception(f"Unable to delete user. Error code: {err.errno}")
+        return f"Unable to delete user. Database error: {err.errno}", 500
     except Exception as e:
         return f"Error deleting user: {e}"
 
 @app.route('/cancel_registration/<conference_id>/<user_id>', methods=['DELETE'])
 def cancel_reg_route(conference_id, user_id):
+    current_user, error = require_role('is_participant', 'is_admin')
+    if error:
+        return jsonify({"error": error[0]}), error[1]
+    if not current_user.is_admin and current_user.user_id != user_id:
+        return jsonify({"error": "You can only cancel your own registration."}), 403
     try:
-        # check login user is owner or admin here if you have auth
         cancel_registration(user_id, conference_id)
         return jsonify({"message": "Registration cancelled"}), 200
+    except (ValueError, PermissionError) as error:
+        return jsonify({"error": str(error)}), 400
     except Error as err:
-        return jsonify({"error": f"Database error: {err.errno}"}), 500
+        app.logger.exception(f"Unable to cancel registration. Error code: {err.errno}")
+        return jsonify({"error": f"Unable to cancel registration. Database error: {err.errno}"}), 500
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -396,19 +474,22 @@ def cancel_reg_route(conference_id, user_id):
 @app.route('/conferences/<conference_id>/invite', methods=['POST'])
 def invite_participant_route(conference_id):
     """Invite a participant to a restricted conference."""
-    organizer_id = session.get('user_id')
-
     try:
-        if not organizer_id or not (
-            is_user_organizer(organizer_id) or is_user_admin(organizer_id)
-        ):
-            return 'Organizer privileges required.', 403
+        user, error = require_role('is_organizer', 'is_admin')
+        if error:
+            return error
+        organizer_id = user.user_id
 
         participant_id = request.form.get('participant_id', '').strip()
         if not participant_id:
             return 'Participant ID is required.', 400
 
-        invite_participant(participant_id, conference_id, organizer_id)
+        invite_participant(
+            participant_id,
+            conference_id,
+            organizer_id,
+            is_admin=user.is_admin,
+        )
     except ValueError as error:
         return str(error), 404
     except Error as err:
@@ -422,10 +503,15 @@ def invite_participant_route(conference_id):
 def register_participant_route(conference_id):
     """Register the signed-in user for a conference."""
     participant_id = session.get('user_id')
-    if not participant_id:
-        return 'Login required.', 401
+    user, error = require_role('is_participant', 'is_admin')
+    if error:
+        return error
     try:
-        register_participant(participant_id, conference_id)
+        register_participant(
+            participant_id,
+            conference_id,
+            is_admin=user.is_admin,
+        )
     except PermissionError as error:
         return str(error), 403
     except ValueError as error:
@@ -440,8 +526,9 @@ def register_participant_route(conference_id):
 def unregister_participant_route(conference_id):
     """Remove the signed-in participant from a registered conference."""
     participant_id = session.get('user_id')
-    if not participant_id:
-        return 'Login required.', 401
+    _, error = require_role('is_participant', 'is_admin')
+    if error:
+        return error
     try:
         unregister_participant(participant_id, conference_id)
     except ValueError as error:
@@ -455,9 +542,10 @@ def unregister_participant_route(conference_id):
 @app.route('/conferences/<conference_id>/receipt', methods=['GET'])
 def download_registration_receipt(conference_id):
     """Download the signed-in participant's receipt for a registered conference."""
-    participant_id = session.get('user_id')
-    if not participant_id:
-        return redirect(url_for('login'))
+    user, error = require_role('is_participant', 'is_admin')
+    if error:
+        return error
+    participant_id = user.user_id
 
     try:
         receipt = get_registration_receipt(participant_id, conference_id)
@@ -506,15 +594,17 @@ def download_registration_receipt(conference_id):
 
 @app.route('/conference_audit', methods=['GET'])
 def view_audit_log():
-    user_id = session.get('user_id')
-    if not user_id:
-        return 'Login required.', 401
-    
     try:
-        if not (is_user_organizer(user_id) or is_user_admin(user_id)):
-            return 'Access denied', 403
+        user, error = require_role('is_organizer', 'is_admin')
+        if error:
+            return error
 
-        log = fetch_conference_log(request.args.get("conference"), request.args.get("user"), request.args.get("action"))
+        log = fetch_conference_log(
+            request.args.get("conference"),
+            request.args.get("user"),
+            request.args.get("action"),
+            owner_id=None if user.is_admin else user.user_id,
+        )
     except Error as err:
         return render_template('server_error.html', errno=err.errno), 500
 
@@ -526,12 +616,16 @@ def view_audit_log():
 
 @app.route('/upcoming_attendance', methods=['GET'])
 def view_upcoming_attendance():
-    user_id = session.get('user_id')
-    if not user_id:
-        return 'Login required.', 401
-
     try:
-        upcoming = get_participant_upcoming_attendance(user_id)
+        user, error = require_role('is_participant', 'is_admin')
+        if error:
+            return error
+
+        upcoming = (
+            get_all_upcoming_attendance()
+            if user.is_admin
+            else get_participant_upcoming_attendance(user.user_id)
+        )
     except Error as err:
         return render_template('server_error.html', errno=err.errno), 500
 
