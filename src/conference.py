@@ -339,46 +339,4 @@ def attach_seat_availability(conferences):
             calculate_remaining_seats(capacity, registered_count)
             if capacity is not None else None
         )
-    return conferences          values["registration_deadline"] = datetime.fromisoformat(values["registration_deadline"])
-        except ValueError:
-            errors["registration_deadline"] = "Enter a valid deadline date and time."
-    # deadline must be before event
-    if "event_datetime" not in errors and "registration_deadline" not in errors:
-        if values["registration_deadline"] and values["event_datetime"]:
-            if values["registration_deadline"] >= values["event_datetime"]:
-                errors["registration_deadline"] = "Deadline must be before event date."
-    if values["registration_type"] not in VALID_REGISTRATION_TYPES:
-        errors["registration_type"] = "Choose open or restricted registration."
-    return values, errors
-
-def attach_seat_availability(conferences):
-    from seats import calculate_remaining_seats
-    if not conferences:
-        return conferences
-    connection = get_connection()
-    cursor = connection.cursor()
-    placeholders = ", ".join(["%s"] * len(conferences))
-    conference_ids = tuple(item.conference_id for item in conferences)
-    sql = f"""
-        SELECT c.conference_id, c.capacity, COUNT(pc.participant_id)
-        FROM `{CONFERENCE_TABLE}` c
-        LEFT JOIN `{PARTICIPANT_CONFERENCE_TABLE}` pc
-            ON pc.conference_id = c.conference_id
-            AND pc.status = 'registered'
-        WHERE c.conference_id IN ({placeholders})
-        GROUP BY c.conference_id, c.capacity
-    """
-    try:
-        cursor.execute(sql, conference_ids)
-        availability = {row[0]: (row[1], row[2]) for row in cursor.fetchall()}
-    finally:
-        cursor.close()
-        connection.close()
-    for conference in conferences:
-        capacity, registered_count = availability.get(conference.conference_id, (None, 0))
-        conference.capacity = capacity
-        conference.remaining_seats = (
-            calculate_remaining_seats(capacity, registered_count)
-            if capacity is not None else None
-        )
     return conferences
