@@ -1,6 +1,14 @@
 from db import get_connection, USER_TABLE
 
 
+class UserRole:
+    """The roles supported by the application."""
+
+    ADMIN = "Admin"
+    ORGANIZER = "Organizer"
+    PARTICIPANT = "Participant"
+
+
 
 class UserModel:
     def __init__(self, 
@@ -16,6 +24,17 @@ class UserModel:
         self.is_admin = is_admin
         self.is_organizer = is_organizer
 
+    @property
+    def role(self):
+        """Return the user's effective application role."""
+        if self.is_admin:
+            return UserRole.ADMIN
+        if self.is_organizer:
+            return UserRole.ORGANIZER
+        if self.is_participant:
+            return UserRole.PARTICIPANT
+        return None
+
 
 
 #TODO: refactor to return user_id just like create_conference() returns conference_id...
@@ -23,6 +42,9 @@ def create_user(user_id, f_name, l_name, email, is_participant, is_admin, is_org
     """
     Creates a user in the database.
     """
+
+    if sum(bool(role) for role in (is_participant, is_admin, is_organizer)) != 1:
+        raise ValueError("A user must have exactly one role.")
 
     connection = get_connection()
     cursor = connection.cursor()

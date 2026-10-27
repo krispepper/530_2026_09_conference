@@ -1,0 +1,18 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>ERROR - Conference Registration System</title>
+</head>
+<body>
+    {% include '_navigation.html' %}
+    <h1>500 - Internal Server Error</h1>
+    <p>
+        If you are seeing this, it likely means that the 
+        system backend is configured incorrectly. Please 
+        report this to a system administrator.
+    </p>
+    {% if errno %}
+    <p>Database error code: {{ errno }}</p>
+    {% endif %}
+</body>
