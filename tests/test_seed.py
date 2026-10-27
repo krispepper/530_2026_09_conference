@@ -1,3 +1,4 @@
+# AI assistance: ChatGPT helped update registration deadline test data.
 import unittest
 from unittest.mock import patch
 
@@ -77,6 +78,7 @@ class DefaultConferenceSeederTest(unittest.TestCase):
                 None,
                 "Graduate Studies Room",
                 "restricted",
+                None,  # No registration deadline.
                 True,
                 None,
                 None,
