@@ -1,0 +1,36 @@
+Conference Waiting List
+Author: Priya Vaghela
+AI assistance: ChatGPT helped draft the implementation, tests, and notes.
+
+Database requirements:
+- conference_waiting_list table, created by create_waiting_list_table_sql().
+- conference.registration_deadline DATETIME column.
+- Existing participant_conf registration_number column.
+- Apply the team's reviewed database migrations without resetting data.
+
+Development testing:
+13 waiting-list and cancellation tests passed.
+Joining, leaving, and automatic registration after cancellation
+were manually tested in development using edwardhunter.
+
+Run automated tests from the project folder:
+source .venv/bin/activate
+PYTHONPATH=src python -m unittest tests.test_attendance_cancellation tests.test_waiting_list -v
+
+User testing:
+1. Publish an open conference with one seat, a future event date,
+   and a registration deadline still in the future.
+2. Register participant u3 to fill the seat.
+3. As participant u4, join the waiting list.
+4. Leave the waiting list and check the confirmation, then join again.
+5. As u3, unregister.
+6. As u4, confirm the conference appears in My conferences as Registered
+   and the waiting-list entry is gone.
+
+Use verified UAT accounts if u3 and u4 are unavailable.
+
+Outstanding:
+- Agree with the team on the deadline form field.
+- Resolve the previously identified Sprint 4 test failures.
+- Complete review, merge, UAT deployment, and UAT testing.
+- UAT testing has not yet been confirmed.
