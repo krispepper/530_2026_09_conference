@@ -27,6 +27,13 @@ AI assistance: ChatGPT helped add the maximum seats field. -->
             {% if errors.event_datetime %}<p role="alert">{{ errors.event_datetime }}</p>{% endif %}
         </div>
         <div>
+  <label for="registration_deadline">Registration deadline</label>
+  <input type="datetime-local" name="registration_deadline" id="registration_deadline" value="{{ values.get('registration_deadline', '') }}">
+  {% if errors.registration_deadline %}
+    <p role="alert">{{ errors.registration_deadline }}</p>
+  {% endif %}
+        </div>
+        <div>
             <label for="location">Location</label>
             <input type="text" name="location" id="location" value="{{ values.get('location', '') }}" required>
             {% if errors.location %}<p role="alert">{{ errors.location }}</p>{% endif %}
