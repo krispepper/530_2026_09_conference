@@ -103,7 +103,7 @@ def create_conference_table_sql():
     `name` VARCHAR(150) NOT NULL,
     `description` TEXT NOT NULL,
     `event_datetime` DATETIME NOT NULL,
-    `registration_deadline` DATETIME NOT NULL,
+    `registration_deadline` DATETIME NULL,
     `location` VARCHAR(200) NOT NULL,
     `registration_type` ENUM('open', 'restricted') NOT NULL,
     `capacity` INT UNSIGNED NULL,
@@ -187,7 +187,7 @@ def create_tables():
         if cursor.fetchone() is None:
             cursor.execute(
                 f"ALTER TABLE `{CONFERENCE_TABLE}` "
-                "ADD COLUMN `registration_deadline` DATETIME NOT NULL DEFAULT '2026-12-01 23:59:00' AFTER `event_datetime`"
+                "ADD COLUMN `registration_deadline` DATETIME NULL AFTER `event_datetime`"
             )
         cursor.execute(create_participant_conference_table_sql())
         cursor.execute(
