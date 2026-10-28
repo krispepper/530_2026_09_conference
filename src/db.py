@@ -1,3 +1,5 @@
+# Author: Priya Vaghela — waiting-list table support.
+# AI assistance: ChatGPT helped draft waiting-list database setup.
 # Purpose: Configure database connections and application tables.
 # AI assistance: ChatGPT helped add conference capacity support.
 import os
@@ -32,6 +34,7 @@ USER_TABLE = "user"
 CONFERENCE_TABLE = "conference"
 CONFERENCE_AUDIT_TABLE = "conf_audit"
 PARTICIPANT_CONFERENCE_TABLE = "participant_conf"
+WAITING_LIST_TABLE = "conference_waiting_list"
 
 
 def get_connection():
@@ -165,6 +168,27 @@ def create_participant_conference_table_sql():
     );"""
 
 
+
+
+def create_waiting_list_table_sql():
+    """Build the queue table without changing participant registrations."""
+    return f"""CREATE TABLE IF NOT EXISTS `{WAITING_LIST_TABLE}` (
+        `queue_id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
+        `participant_id` VARCHAR(10) NOT NULL,
+        `conference_id` VARCHAR(36) NOT NULL,
+        `joined_at` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+        PRIMARY KEY (`queue_id`),
+        UNIQUE KEY `uq_waiting_participant`
+            (`participant_id`, `conference_id`),
+        INDEX `idx_waiting_queue` (`conference_id`, `queue_id`),
+        CONSTRAINT `fk_waiting_participant`
+            FOREIGN KEY (`participant_id`)
+            REFERENCES `{USER_TABLE}` (`user_id`),
+        CONSTRAINT `fk_waiting_conference`
+            FOREIGN KEY (`conference_id`)
+            REFERENCES `{CONFERENCE_TABLE}` (`conference_id`)
+    );"""
+
 def create_tables():
     """
     Creates all application tables in foreign-key dependency order.
@@ -186,6 +210,7 @@ def create_tables():
                 "ADD COLUMN `capacity` INT UNSIGNED NULL"
             )
         cursor.execute(create_participant_conference_table_sql())
+        cursor.execute(create_waiting_list_table_sql())
         cursor.execute(
             f"SHOW COLUMNS FROM `{PARTICIPANT_CONFERENCE_TABLE}` "
             "LIKE 'registration_number'"
@@ -221,6 +246,7 @@ def reset_tables():
             f"DROP TABLE IF EXISTS `{PARTICIPANT_CONFERENCE_TABLE}`"
         )
         cursor.execute(f"DROP TABLE IF EXISTS `{CONFERENCE_AUDIT_TABLE}`")
+        cursor.execute(f"DROP TABLE IF EXISTS `{WAITING_LIST_TABLE}`")
         cursor.execute(f"DROP TABLE IF EXISTS `{CONFERENCE_TABLE}`")
         cursor.execute(f"DROP TABLE IF EXISTS `{USER_TABLE}`")
         connection.commit()
