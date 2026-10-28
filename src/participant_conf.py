@@ -157,7 +157,7 @@ def register_participant(participant_id, conference_id, is_admin=False):
     cursor = connection.cursor()
     try:
         cursor.execute(
-            f"""SELECT registration_type, is_published, capacity
+            f"""SELECT registration_type, is_published, capacity, registration_deadline FROM
                 FROM `{CONFERENCE_TABLE}`
                 WHERE conference_id = %s FOR UPDATE""",
             (conference_id,),
@@ -181,7 +181,10 @@ def register_participant(participant_id, conference_id, is_admin=False):
         if cursor.fetchone() is None:
             raise PermissionError("You are not permitted to register for this conference.")
 
-        registration_type, _, capacity = conference
+        registration_type, _, capacity, registration_deadline = conference
+from datetime import datetime
+if registration_deadline and datetime.now() > registration_deadline:
+    raise ValueError("Registration deadline has passed - registration is closed")
 
         # Lock the conference first to serialize competing registrations.
         cursor.execute(
