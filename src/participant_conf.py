@@ -157,7 +157,7 @@ def register_participant(participant_id, conference_id, is_admin=False):
     cursor = connection.cursor()
     try:
         cursor.execute(
-            f"""SELECT registration_type, is_published, capacity, registration_deadline FROM
+            f"""SELECT registration_type, is_published, capacity, registration_deadline
                 FROM `{CONFERENCE_TABLE}`
                 WHERE conference_id = %s FOR UPDATE""",
             (conference_id,),
