@@ -31,6 +31,7 @@ from participant_conf import (
     invite_participant,
     register_participant,
     unregister_participant,
+    remove_participant,
     get_participant_upcoming_attendance,
     get_registration_receipt,
 )
@@ -324,7 +325,30 @@ def export_participants_route(conference_id):
             'Cache-Control': 'no-store',
         },
     )
+@app.route('/conferences/<conference_id>/participants', methods=['GET'])
+def manage_participants_page(conference_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+    if not (is_user_organizer(user_id) or is_user_admin(user_id)):
+        return 'Organizer privileges required.', 403
+    conference = get_conference_for_organizer(conference_id, user_id)
+    if conference is None:
+        return 'Conference not found.', 404
+    participants = get_conference_participants(conference_id)
+    return render_template('manage_participants.html', conference=conference, participants=participants)
 
+@app.route('/conferences/<conference_id>/participants/<participant_id>/remove', methods=['POST'])
+def remove_participant_route(conference_id, participant_id):
+    organizer_id = session.get('user_id')
+    if not organizer_id:
+        return 'Login required.', 401
+    try:
+        remove_participant(participant_id, conference_id, organizer_id)
+    except ValueError as e:
+        return str(e), 404
+    return redirect(url_for('manage_participants_page', conference_id=conference_id))
+    
 
 @app.route('/delete_user/<user_id>', methods=['POST'])
 def delete_user(user_id):
