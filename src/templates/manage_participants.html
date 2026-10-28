@@ -1,36 +1,15 @@
-{% extends "base.html" %}
-{% block content %}
-<h1>Manage Participants - {{ conference.title }}</h1>
+<html>
+<body>
+<div style="background:#eee;padding:10px">Signed in as {{user}}</div>
+<h2>Manage Participants - {{conference.title}}</h2>
+<p>Available seats: {{ available }} of {{ conference.capacity }}</p>
 
-<a href="{{ url_for('my_conferences_page') }}">Back to My Conferences</a>
-
-{% if participants %}
-<table border="1" cellpadding="8" style="margin-top:20px; width:100%; border-collapse: collapse;">
-  <thead>
-    <tr>
-      <th>Name</th>
-      <th>Email</th>
-      <th>Status</th>
-      <th>Action</th>
-    </tr>
-  </thead>
-  <tbody>
-    {% for p in participants %}
-    <tr>
-      <td>{{ p.name }}</td>
-      <td>{{ p.email }}</td>
-      <td>{{ p.status }}</td>
-      <td>
-        <form method="POST" action="{{ url_for('remove_participant_route', conference_id=conference.id, participant_id=p.id) }}" onsubmit="return confirm('Remove {{ p.name }} from this conference?');">
-          <button type="submit" style="background:#d9534f; color:white; border:none; padding:5px 10px; cursor:pointer;">Remove</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </tbody>
+<table>
+{% for p in participants %}
+<tr><td>{{p.email}}</td><td><a href="/remove?email={{p.email}}">Remove</a></td></tr>
+{% endfor %}
 </table>
-{% else %}
-<p style="margin-top:20px;">No participants found for this conference.</p>
-{% endif %}
 
-{% endblock %}
+<a href="/conferences/{{conference.id}}">Back to conference</a>
+</body>
+</html>
