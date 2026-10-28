@@ -33,7 +33,6 @@ CONFERENCE_TABLE = "conference"
 CONFERENCE_AUDIT_TABLE = "conf_audit"
 PARTICIPANT_CONFERENCE_TABLE = "participant_conf"
 
-
 def get_connection():
     """
     Opens a connection to the selected application database.
@@ -49,9 +48,7 @@ def get_connection():
         connection_args["port"] = int(PORT)
     return mysql.connector.connect(**connection_args)
 
-
 print("Using DB:", DATABASE)
-
 
 def create_databases():
     """
@@ -79,7 +76,6 @@ def create_databases():
         cursor.close()
         connection.close()
 
-
 def create_user_table_sql():
     """
     Builds the SQL query for the create user table.
@@ -96,7 +92,6 @@ def create_user_table_sql():
     PRIMARY KEY (`user_id`)
     );"""
 
-
 def create_conference_table_sql():
     """
     Builds the SQL statement for the create conference table.
@@ -108,6 +103,7 @@ def create_conference_table_sql():
     `name` VARCHAR(150) NOT NULL,
     `description` TEXT NOT NULL,
     `event_datetime` DATETIME NOT NULL,
+    `registration_deadline` DATETIME NOT NULL,
     `location` VARCHAR(200) NOT NULL,
     `registration_type` ENUM('open', 'restricted') NOT NULL,
     `capacity` INT UNSIGNED NULL,
@@ -164,7 +160,6 @@ def create_participant_conference_table_sql():
     INDEX `idx_participant_conf_status` (`status`)
     );"""
 
-
 def create_tables():
     """
     Creates all application tables in foreign-key dependency order.
@@ -184,6 +179,15 @@ def create_tables():
             cursor.execute(
                 f"ALTER TABLE `{CONFERENCE_TABLE}` "
                 "ADD COLUMN `capacity` INT UNSIGNED NULL"
+            )
+        # Add registration_deadline to existing tables without removing data - FIX FOR ERROR 1054
+        cursor.execute(
+            f"SHOW COLUMNS FROM `{CONFERENCE_TABLE}` LIKE 'registration_deadline'"
+        )
+        if cursor.fetchone() is None:
+            cursor.execute(
+                f"ALTER TABLE `{CONFERENCE_TABLE}` "
+                "ADD COLUMN `registration_deadline` DATETIME NOT NULL DEFAULT '2026-12-01 23:59:00' AFTER `event_datetime`"
             )
         cursor.execute(create_participant_conference_table_sql())
         cursor.execute(
@@ -208,7 +212,6 @@ def create_tables():
         cursor.close()
         connection.close()
 
-
 def reset_tables():
     """
     Drops all DB tables in reverse foreign-key dependency order.
@@ -230,7 +233,6 @@ def reset_tables():
     finally:
         cursor.close()
         connection.close()
-
 
 if __name__ == "__main__":
     create_databases()
