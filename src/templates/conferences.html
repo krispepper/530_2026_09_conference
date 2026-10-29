@@ -40,6 +40,9 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
             <a class="button" href="{{ url_for('conference_page', conference_id=conference.conference_id) }}">
                 View conference
             </a>
+                        <a class="button" href="{{ url_for('manage_participants_page', conference_id=conference.conference_id) }}">
+                Manage Participants
+                        </a>
         </article>
     {% else %}
         <p>

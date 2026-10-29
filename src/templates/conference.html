@@ -1,3 +1,5 @@
+<!-- Author: Priya Vaghela.
+AI assistance: ChatGPT helped add waiting-list controls and messages. -->
 <!-- Purpose: Display conference details and seat availability.
 AI assistance: ChatGPT helped display seats and registration availability. -->
 <!DOCTYPE html>
@@ -8,6 +10,26 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
 </head>
 <body>
     {% include '_navigation.html' %}
+    {% for message in get_flashed_messages() %}
+        <p role="status">{{ message }}</p>
+    {% endfor %}
+
+    {% if current_user and current_user.is_participant
+          and waiting_list_state is defined %}
+        {% if waiting_list_state.joined %}
+            <p>You are on the waiting list.</p>
+            <form method="post"
+                  action="{{ url_for('leave_waiting_list_route', conference_id=conference.conference_id) }}">
+                <button type="submit">Leave waiting list</button>
+            </form>
+        {% elif waiting_list_state.can_join %}
+            <form method="post"
+                  action="{{ url_for('join_waiting_list_route', conference_id=conference.conference_id) }}">
+                <button type="submit">Join waiting list</button>
+            </form>
+        {% endif %}
+    {% endif %}
+
     <h1>{{ conference.name }}</h1>
     <p>{{ conference.description }}</p>
     <p><strong>Date and time:</strong> {{ conference.event_datetime }}</p>
@@ -44,7 +66,7 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
 
         {% if current_user and current_user.is_organizer and is_owner %}
             <p>As the organizer, you cannot register for your own conference.</p>
-        {% elif current_user and conference.membership_status == 'registered' %}
+        {% elif current_user and current_user.is_participant and conference.membership_status == 'registered' %}
             <p>
                 <a class="button" href="{{ url_for('download_registration_receipt', conference_id=conference.conference_id) }}">
                     Download receipt
@@ -53,14 +75,16 @@ AI assistance: ChatGPT helped display seats and registration availability. -->
             <form method="post" action="{{ url_for('unregister_participant_route', conference_id=conference.conference_id) }}">
                 <button type="submit">Unregister</button>
             </form>
-        {% elif current_user
+        {% elif current_user and current_user.is_participant
                 and (conference.remaining_seats is none
                      or conference.remaining_seats == 0) %}
             <p>Registration is unavailable.</p>
-        {% elif current_user %}
+        {% elif current_user and current_user.is_participant %}
             <form method="post" action="{{ url_for('register_participant_route', conference_id=conference.conference_id) }}">
                 <button type="submit">Register</button>
             </form>
+        {% elif current_user %}
+            <p>Only participants can register for conferences.</p>
         {% else %}
             <p>Log in to register for this conference.</p>
         {% endif %}

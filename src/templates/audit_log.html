@@ -17,19 +17,36 @@
         <option value="CREATE">CREATE</option>
         <option value="INVITE">INVITE</option>
         <option value="REGISTER">REGISTER</option>
-        <option value="UNREGISTER">REGISTER</option>
+        <option value="UNREGISTER">UNREGISTER</option>
     </select>
+    <label for="beforeSearch">Before: </label>
+    <input type="datetime-local" name="beforeSearch" id="beforeSearch"></input>
+    <label for="afterSearch">After: </label>
+    <input type="datetime-local" name="afterSearch" id="afterSearch"></input>
     <button id="search" onclick="search()">Search</button>
     <script>
         function search(){
             var conf = document.getElementById("confSearch").value;
             var user = document.getElementById("userSearch").value;
             var act = document.getElementById("actSearch").value;
+            var before = document.getElementById("beforeSearch").value;
+            var after = document.getElementById("afterSearch").value;
 
-            var href = "/conference_audit" + (conf || user || act ? "?" : "") +
+            var filters = []
+            if(conf)filters.push("conference=%" + conf + "%")
+            if(user)filters.push("user=" + user)
+            if(act)filters.push("action=" + act)
+            if(before)filters.push("before=" + before)
+            if(after)filters.push("after=" + after)
+
+
+            /*var href = "/conference_audit" + (conf || user || act ? "?" : "") +
                 (conf ? "conference=%" + conf + "%" + (user || act ? "&" : "") : "") +
                 (user ? "user=" + user + (act ? "&" : "") : "") +
-                (act ? "action=" + act : "") 
+                (act ? "action=" + act : "") */
+            
+            var href = "/conference_audit"
+            if (filters) href += "?" + filters.join("&")
             
             window.location.href = href;
         }
