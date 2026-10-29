@@ -33,7 +33,7 @@ class RemainingSeatsTests(unittest.TestCase):
         cursor = connection.cursor.return_value
         mock_connection.return_value = connection
         cursor.fetchone.side_effect = [
-            ("open", True, 1),
+            ("open", True, 1, None),
             ("u3",),
             None,
         ]
@@ -45,19 +45,21 @@ class RemainingSeatsTests(unittest.TestCase):
         connection.rollback.assert_called_once()
         connection.commit.assert_not_called()
 
+    @patch("participant_conf.log_conference_action")
     @patch("participant_conf.get_connection")
-    def test_registration_succeeds_when_seat_available(self, mock_connection):
+    def test_registration_succeeds_when_seat_available(self, mock_connection, mock_log):
         connection = MagicMock()
         cursor = connection.cursor.return_value
         mock_connection.return_value = connection
         cursor.fetchone.side_effect = [
-            ("open", True, 2),
+            ("open", True, 2, None),
             ("u3",),
             None,
         ]
         cursor.fetchall.return_value = [("u4",)]
 
         register_participant("u3", "c1")
+        mock_log.assert_called_once_with("c1", "u3", "REGISTER")
 
         connection.commit.assert_called_once()
         connection.rollback.assert_not_called()
@@ -68,7 +70,7 @@ class RemainingSeatsTests(unittest.TestCase):
         cursor = connection.cursor.return_value
         mock_connection.return_value = connection
         cursor.fetchone.side_effect = [
-            ("open", True, 1),
+            ("open", True, 1, None),
             ("u3",),
             ("registered",),
         ]
