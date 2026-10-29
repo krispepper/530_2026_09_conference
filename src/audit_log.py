@@ -42,7 +42,7 @@ def log_conference_invite(conference_id, user_id, invitee):
 
 
 def fetch_conference_log(
-    conference_id=None, user_id=None, action=None, owner_id=None
+    conference_id=None, user_id=None, action=None, before = None, after = None, owner_id=None
 ):
     """
     Reads conference audit log data from database.
@@ -63,9 +63,14 @@ def fetch_conference_log(
         ("a.conference_id", conference_id),
         ("a.user_id", user_id),
         ("a.action", action),
+        ("a.timestamp <", before),
+        ("a.timestamp >", after),
     ):
         if value is not None:
-            conditions.append(f"{column} LIKE %s ESCAPE ''")
+            if column[-1] in "<>":
+                conditions.append(f"{column} %s")
+            else:
+                conditions.append(f"{column} LIKE %s ESCAPE ''")
             parameters.append(value)
 
     sql = f"""SELECT a.conference_id, a.timestamp, a.user_id, a.action, a.invitee

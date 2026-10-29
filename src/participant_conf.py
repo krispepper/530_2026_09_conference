@@ -1,3 +1,4 @@
+# AI assistance: ChatGPT helped connect cancellation to waiting-list promotion.
 # AI assistance: ChatGPT helped protect past attendance records.
 # Purpose: Manage invitations, registrations, and cancellations.
 # AI assistance: ChatGPT helped enforce conference seat capacity.
@@ -303,6 +304,9 @@ def unregister_participant(participant_id, conference_id):
         )
         if cursor.rowcount != 1:
             raise ValueError("You are not registered for this conference.")
+        from waiting_list import promote_next_waiting_participant
+
+        promote_next_waiting_participant(cursor, conference_id)
         connection.commit()
         log_conference_action(conference_id, participant_id, "UNREGISTER")
     except Exception:
