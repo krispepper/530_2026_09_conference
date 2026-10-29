@@ -182,9 +182,9 @@ def register_participant(participant_id, conference_id, is_admin=False):
         if cursor.fetchone() is None:
                raise PermissionError("You are not permitted to register participants for this conference")
 
-        registration_type, _, capacity, registration_deadline = conference
-            if registration_deadline and datetime.now() > registration_deadline:
-                    raise ValueError("Registration deadline has passed - registration is closed")
+                registration_type, _, capacity, registration_deadline = conference
+        if registration_deadline and datetime.now() > registration_deadline:
+            raise ValueError("Registration deadline has passed - registration is closed")
             
 
         # Lock the conference first to serialize competing registrations.
