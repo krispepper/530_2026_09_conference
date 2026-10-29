@@ -1,0 +1,15 @@
+<html>
+<body>
+<div style="background:#eee;padding:10px">Signed in as {{user}}</div>
+<h2>Manage Participants - {{conference.title}}</h2>
+<p>Available seats: {{ available }} of {{ conference.capacity }}</p>
+
+<table>
+{% for p in participants %}
+<tr><td>{{p.email}}</td><td><a href="/remove?email={{p.email}}">Remove</a></td></tr>
+{% endfor %}
+</table>
+
+<a href="/conferences/{{conference.id}}">Back to conference</a>
+</body>
+</html>
