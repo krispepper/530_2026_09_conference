@@ -339,4 +339,5 @@ def attach_seat_availability(conferences):
             calculate_remaining_seats(capacity, registered_count)
             if capacity is not None else None
         )
-    return conferences
+    return conferences          
+    

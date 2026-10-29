@@ -37,8 +37,12 @@ class AttendanceCancellationTests(unittest.TestCase):
         cursor.fetchone.return_value = (1,)
         cursor.rowcount = 1
 
-        unregister_participant("u3", "future1")
+        with patch(
+            "waiting_list.promote_next_waiting_participant"
+        ) as promote:
+            unregister_participant("u3", "future1")
 
+        promote.assert_called_once_with(cursor, "future1")
         connection.commit.assert_called_once()
         log_action.assert_called_once_with("future1", "u3", "UNREGISTER")
 

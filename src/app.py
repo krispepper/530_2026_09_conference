@@ -1,4 +1,5 @@
 # AI assistance: ChatGPT helped remove duplicate conference lookups and restore access error handling.
+from waiting_list import get_waiting_list_state
 # AI assistance: ChatGPT helped add the past events route.
 from past_attendance import get_past_events
 
@@ -33,6 +34,7 @@ from participant_conf import (
     invite_participant,
     register_participant,
     unregister_participant,
+    remove_participant,
     get_participant_upcoming_attendance,
     get_all_upcoming_attendance,
     get_registration_receipt,
@@ -374,6 +376,9 @@ def conference_page(conference_id):
             'conference.html',
             conference=conference,
             is_owner=can_manage,
+            waiting_list_state=get_waiting_list_state(
+                session.get('user_id'), conference_id
+            ),
         )
     except Error as err:
         return render_template('server_error.html', errno=err.errno), 500
@@ -426,7 +431,30 @@ def export_participants_route(conference_id):
             'Cache-Control': 'no-store',
         },
     )
+@app.route('/conferences/<conference_id>/participants', methods=['GET'])
+def manage_participants_page(conference_id):
+    user_id = session.get('user_id')
+    if not user_id:
+        return 'Login required.', 401
+    if not (is_user_organizer(user_id) or is_user_admin(user_id)):
+        return 'Organizer privileges required.', 403
+    conference = get_conference_for_organizer(conference_id, user_id)
+    if conference is None:
+        return 'Conference not found.', 404
+    participants = get_conference_participants(conference_id)
+    return render_template('manage_participants.html', conference=conference, participants=participants)
 
+@app.route('/conferences/<conference_id>/participants/<participant_id>/remove', methods=['POST'])
+def remove_participant_route(conference_id, participant_id):
+    organizer_id = session.get('user_id')
+    if not organizer_id:
+        return 'Login required.', 401
+    try:
+        remove_participant(participant_id, conference_id, organizer_id)
+    except ValueError as e:
+        return str(e), 404
+    return redirect(url_for('manage_participants_page', conference_id=conference_id))
+    
 
 @app.route('/delete_user/<user_id>', methods=['POST'])
 def delete_user(user_id):
@@ -488,6 +516,60 @@ def invite_participant_route(conference_id):
         app.logger.exception(f"Unable to send conference invitation. Code: {err.errno}")
         return f'The invitation could not be sent. Please try again. Error code: {err.errno}', 500
 
+    return redirect(url_for('conference_page', conference_id=conference_id))
+
+
+
+# AI assistance: ChatGPT helped connect waiting-list actions to authenticated routes.
+@app.route('/conferences/<conference_id>/waiting-list/join', methods=['POST'])
+def join_waiting_list_route(conference_id):
+    """Join the queue using only the signed-in participant's identity."""
+    from flask import flash
+    from waiting_list import join_waiting_list
+
+    try:
+        user = get_current_user()
+        if user is None:
+            return 'Login required.', 401
+        if not user.is_participant:
+            return 'Participant privileges required.', 403
+
+        message = join_waiting_list(user.user_id, conference_id)
+    except PermissionError as error:
+        return str(error), 403
+    except ValueError as error:
+        return str(error), 400
+    except Error:
+        app.logger.exception("Unable to join conference waiting list")
+        return 'Unable to join the waiting list. Please try again.', 500
+
+    flash(message)
+    return redirect(url_for('conference_page', conference_id=conference_id))
+
+
+@app.route('/conferences/<conference_id>/waiting-list/leave', methods=['POST'])
+def leave_waiting_list_route(conference_id):
+    """Remove only the signed-in participant's waiting-list entry."""
+    from flask import flash
+    from waiting_list import leave_waiting_list
+
+    try:
+        user = get_current_user()
+        if user is None:
+            return 'Login required.', 401
+        if not user.is_participant:
+            return 'Participant privileges required.', 403
+
+        message = leave_waiting_list(user.user_id, conference_id)
+    except PermissionError as error:
+        return str(error), 403
+    except ValueError as error:
+        return str(error), 400
+    except Error:
+        app.logger.exception("Unable to leave conference waiting list")
+        return 'Unable to leave the waiting list. Please try again.', 500
+
+    flash(message)
     return redirect(url_for('conference_page', conference_id=conference_id))
 
 

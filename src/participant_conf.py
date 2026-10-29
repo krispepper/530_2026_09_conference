@@ -1,6 +1,8 @@
+# AI assistance: ChatGPT helped connect cancellation to waiting-list promotion.
 # AI assistance: ChatGPT helped protect past attendance records.
 # Purpose: Manage invitations, registrations, and cancellations.
 # AI assistance: ChatGPT helped enforce conference seat capacity.
+from datetime import datetime
 from enum import Enum
 from uuid import uuid4
 
@@ -157,7 +159,7 @@ def register_participant(participant_id, conference_id, is_admin=False):
     cursor = connection.cursor()
     try:
         cursor.execute(
-            f"""SELECT registration_type, is_published, capacity
+            f"""SELECT registration_type, is_published, capacity, registration_deadline
                 FROM `{CONFERENCE_TABLE}`
                 WHERE conference_id = %s FOR UPDATE""",
             (conference_id,),
@@ -179,9 +181,11 @@ def register_participant(participant_id, conference_id, is_admin=False):
             (conference_id, participant_id),
         )
         if cursor.fetchone() is None:
-            raise PermissionError("You are not permitted to register for this conference.")
+            raise PermissionError("You are not permitted to register participants for this conference")
 
-        registration_type, _, capacity = conference
+        registration_type, _, capacity, registration_deadline = conference
+        if registration_deadline and datetime.now() > registration_deadline:
+            raise ValueError("Registration deadline has passed - registration is closed")
 
         # Lock the conference first to serialize competing registrations.
         cursor.execute(
@@ -300,6 +304,9 @@ def unregister_participant(participant_id, conference_id):
         )
         if cursor.rowcount != 1:
             raise ValueError("You are not registered for this conference.")
+        from waiting_list import promote_next_waiting_participant
+
+        promote_next_waiting_participant(cursor, conference_id)
         connection.commit()
         log_conference_action(conference_id, participant_id, "UNREGISTER")
     except Exception:
