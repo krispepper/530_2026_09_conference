@@ -1,3 +1,5 @@
+<!-- Purpose: Display shared website navigation.
+AI assistance: ChatGPT helped add the participant Past events menu link. -->
 
 <!--Dropdown-related CSS comes from W3Schools example code, and dropdown-related HTML is loosely based on that example.-->
 <!--Source: https://www.w3schools.com/howto/howto_css_dropdown_navbar.asp-->
@@ -11,14 +13,16 @@
             <button class="dropbtn">My Conferences
             <i class="fa fa-caret-down"></i>
             </button>
-            <div class="dropdown-content">
+                        <div class="dropdown-content">
                 <a href="{{ url_for('my_conferences_page') }}">My conferences</a>
                 {% if current_user.is_participant or current_user.is_admin %}
                     <a href="{{ url_for('view_upcoming_attendance') }}">Upcoming Attendance</a>
                 {% endif %}
+                {% if current_user and current_user.is_participant %}
+                    <a href="{{ url_for('past_events_page') }}">Past events</a>
+                {% endif %}
             </div>
-        </div>
-        
+                </div>
     {% endif %}
     {% if can_manage_conferences %}
         <a class="button" href="{{ url_for('create_conference_page') }}">Create conference</a>

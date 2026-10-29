@@ -1,3 +1,4 @@
+# AI assistance: ChatGPT helped update registration deadline test data.
 import os
 import sys
 import unittest
@@ -31,6 +32,7 @@ def make_conference(conference_id="conference-1", organizer_id="u1"):
         None,
         "Test location",
         "open",
+        None,  # No registration deadline.
         True,
         None,
         None,

@@ -1,3 +1,4 @@
+# AI assistance: ChatGPT helped update registration deadline test data.
 import csv
 import io
 import sys
@@ -40,6 +41,7 @@ class ParticipantCsvExportTest(unittest.TestCase):
             datetime(2026, 10, 4, 12, 0),
             "Room 101",
             "open",
+            None,  # No registration deadline.
             True,
             None,
             None,

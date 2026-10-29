@@ -1,3 +1,4 @@
+# AI assistance: ChatGPT helped remove duplicate conference lookups and restore access error handling.
 from waiting_list import get_waiting_list_state
 # AI assistance: ChatGPT helped add the past events route.
 from past_attendance import get_past_events
@@ -347,26 +348,19 @@ def conference_page(conference_id):
             user = get_user_by_id(session['user_id'])
             if user and user.is_admin:
                 conference = get_conference_for_admin(conference_id)
-            else:
+            elif user and user.is_organizer:
                 conference = get_conference_for_organizer(
                     conference_id, session['user_id']
                 )
+
         if conference is None:
-            return 'Conference not found.', 404
-        attach_seat_availability([conference])
-        if session.get('user_id'):
-            conference.membership_status = get_participant_conference_status(
-                session['user_id'], conference_id
-            )
-        if conference is None:
-            # Distinguish a missing conference from an existing conference that
-            # the current user cannot view.
             existing_conference = get_conference_for_admin(conference_id)
             if existing_conference is not None:
                 if not session.get('user_id'):
                     return 'Login required.', 401
                 return 'You do not have permission to access this conference.', 403
             return 'Conference not found.', 404
+
         attach_seat_availability([conference])
         if session.get('user_id'):
             conference.membership_status = get_participant_conference_status(
@@ -401,10 +395,6 @@ def export_participants_route(conference_id):
         user = get_user_by_id(user_id)
         if not user or not (user.is_organizer or user.is_admin):
             return 'Organizer privileges required.', 403
-
-        conference = get_conference_for_organizer(conference_id, user_id)
-        if conference is None:
-            return 'Conference not found.', 404
 
         conference = (
             get_conference_for_admin(conference_id)
